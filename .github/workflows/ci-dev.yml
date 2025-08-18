@@ -1,0 +1,35 @@
+name: CI Pipeline for Dev Branch
+
+on:
+  push:
+    branches:
+      - dev    # Trigger the workflow on push to the 'dev' branch
+  pull_request:
+    branches:
+      - dev    # Trigger the workflow on PRs targeting the 'dev' branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'  # You can specify a different version if needed
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test  # Or use a different test command if you're using something else (Jest, Mocha, etc.)
+
+      - name: Lint the code
+        run: npm run lint  # Optional: only if you have a linting script in package.json
+
+      - name: Build project
+        run: npm run build  # Optional: Run if you have a build step, e.g., for TypeScript
+
