@@ -20,17 +20,17 @@ const userSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
       unique: true,
-      sparse: true, // allows phone number to be optional if logging in via Firebase
+      sparse: true, 
     },
     email: {
       type: String,
       required: true,
       unique: true,
-      sparse: true, // allows email to be optional if logging in via Firebase
+      sparse: true, 
     },
     password: {
-      type: String, // Store the hashed password here
-      required: false, // Make sure it's required for custom auth
+      type: String, 
+      required: false, 
       select: false,  // Don't include it in queries by default
     },
     roleType: {
@@ -51,7 +51,11 @@ const userSchema = new mongoose.Schema(
     addresses: [
       {
         _id: false,
-        label: { type: String, trim: true, default: 'Home' },
+        id: {
+          type: mongoose.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId(),
+        },
+        label: { type: String, trim: true, default: "Home" },
         phoneNumber: { type: String, trim: true },
         street: { type: String, trim: true },
         city: { type: String, trim: true },

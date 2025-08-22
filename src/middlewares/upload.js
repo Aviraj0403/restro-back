@@ -1,15 +1,13 @@
-// src/middlewares/upload.js
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Ensure 'uploads/' directory exists
+
 const uploadDir = path.resolve('uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer disk storage config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -21,7 +19,7 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter (production-grade)
+
 const allowedMimeTypes = [
   'image/jpeg',
   'image/jpg',
