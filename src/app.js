@@ -6,6 +6,9 @@ import cookieParser from 'cookie-parser';
 import { logSessionActivity } from './middlewares/logSessionActivity.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import foodRoutes from './routes/food.routes.js';
+import catgoryRoutes from './routes/catgory.routes.js';
+
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';  // Import 'join' and 'dirname' from 'path'
@@ -44,8 +47,8 @@ app.use(logSessionActivity);
 // API Routes
 app.use('/api', authRoutes);
 app.use('/api', userRoutes); 
-// app.use('/api', employeeRoutes);
-// app.use('/api', admitRoutes);
+app.use('/api', foodRoutes);
+app.use('/api', catgoryRoutes);
 // app.use('/api', courseRoutes);
 // app.use('/api', examSubjectRoutes);
 // app.use('/api', subjectRoutes);
