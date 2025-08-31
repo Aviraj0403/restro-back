@@ -6,9 +6,9 @@ import hashPassword from '../utils/hashPassword.js';
 import generateOTP from '../utils/generateOTP.js';
 import sendMailer from '../utils/emailService.js';
 import cloudinary from '../config/cloudinaryConfig.js';
+import bcrypt from 'bcryptjs';
+import { comparePassword } from '../utils/comparePassword.js';
 
-import crypto from 'crypto';
-import dotenv from 'dotenv';
 const createOrUpdateUser = async (firebaseUid, userData) => {
   let user = await User.findOne({ firebaseUid });
   if (!user) {
@@ -25,7 +25,6 @@ const createOrUpdateUser = async (firebaseUid, userData) => {
   }
   return user;
 };
-
 // Google Registration
 export const registerViaGoogle = async (req, res) => {
   const { idToken } = req.body;
@@ -40,7 +39,6 @@ export const registerViaGoogle = async (req, res) => {
     res.status(400).json({ error: 'Authentication failed' });
   }
 };
-
 //make it hold
 export const registerViaPhone = async (req, res) => {
   const { verificationId, otp } = req.body;
@@ -69,13 +67,13 @@ export const registerViaPhone = async (req, res) => {
       // If user doesn't exist, create or update their information
       const { uid, phoneNumber, displayName } = userCredential.user;
       const newUser = await createOrUpdateUser(uid, {
-        userName: displayName || 'User_' + uid, 
+        userName: displayName || 'User_' + uid,
         phoneNumber
       });
-      
+
       // Generate JWT token for the new user
       const token = await generateToken(res, { uid, userName: newUser.userName, phoneNumber: newUser.phoneNumber });
-      
+
       // Respond with the new user and token
       return res.status(201).json({
         message: 'User registered successfully',
@@ -107,22 +105,32 @@ export const registerViaPhone = async (req, res) => {
     if (error.code === 'auth/invalid-verification-code') {
       return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
     }
-    
+
     console.error('Error during phone number registration:', error);
-    
+
     // Generic error message for other issues
     res.status(400).json({ error: 'Phone Authentication failed. Please check your OTP or try again later.' });
   }
 };
-// Custom Registration (Email/Password)
 export const customRegister = async (req, res) => {
   const { userName, firstName, lastName, email, password, phoneNumber } = req.body;
+
+  // Validate input
+  if (!userName || !email || !password) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
   try {
+    // Check if user already exists by email or phone
     const existingUser = await User.findOne({ $or: [{ email }, { phoneNumber }] });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
-    const hashedPassword = password ? hashPassword(password) : undefined;
+
+    // Hash the password
+    const hashedPassword = hashPassword(password);
+
+    // Create a new user
     const newUser = new User({
       userName,
       firstName,
@@ -132,14 +140,21 @@ export const customRegister = async (req, res) => {
       password: hashedPassword,
       roleType: 'customer',
     });
+
+    // Save the user to the database
     await newUser.save();
+
+    // Generate token
     await generateToken(res, { uid: newUser._id, userName, email, phoneNumber });
+
+    // Respond with success message
     res.status(201).json({ message: 'User registered successfully', user: newUser });
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 export const authMe = async (req, res) => {
   try {
     const userData = req.user;  // Assuming you've added middleware to populate `req.user`
@@ -149,37 +164,59 @@ export const authMe = async (req, res) => {
     res.status(401).json({ message: "Failed to authenticate" });
   }
 };
-
 // Sign-In (Username/Password or Firebase)
 export const signIn = async (req, res) => {
-  const { idToken, userName, password } = req.body;
   try {
+    const { userName, email, password, idToken } = req.body;
+
+    if (!(userName || email) || !password) {
+      return res.status(400).json({ message: "Username/email or password missing" });
+    }
+
+    let userDetails;
+    
+    // Firebase Authentication check if idToken is present
     if (idToken) {
-      // Sign in via Firebase (Google or Phone)
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const { uid } = decodedToken;
-      let user = await User.findOne({ firebaseUid: uid });
-      if (!user) {
-        return res.status(400).json({ error: 'User not found in the database' });
+      userDetails = await User.findOne({ firebaseUid: uid });
+
+      if (!userDetails) {
+        return res.status(400).json({ message: "User not found in the database" });
       }
-      await generateToken(res, { uid, userName: user.userName, email: user.email });
-      res.status(200).json({ message: 'Sign-in successful', user });
-    } else if (userName && password) {
-      // Sign in via Username/Password
-      const user = await User.findOne({ userName });
-      if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(400).json({ error: 'Invalid credentials' });
-      }
-      await generateToken(res, { uid: user._id, userName: user.userName, email: user.email });
-      res.status(200).json({ message: 'Sign-in successful', user });
     } else {
-      res.status(400).json({ error: 'Invalid sign-in method' });
+      // If no idToken, use username/email to find user and check password
+      userDetails = await User.findOne({ $or: [{ userName }, { email }] }).select('+password');
+      
+      if (!userDetails || !(await bcrypt.compare(password, userDetails.password))) {
+        return res.status(401).json({ message: "Wrong credentials" });
+      }
     }
+
+    // Prepare user data
+    const userData = {
+      id: userDetails._id,
+      userName: userDetails.userName,
+      email: userDetails.email,
+      roleType: userDetails.roleType,
+    };
+
+    // Generate a token
+    const token = await generateToken(res, userData);
+
+    // Send response with token and userData
+    res.status(200).json({
+      userData,
+      token,
+      message: "User signed in successfully"
+    });
+
   } catch (error) {
-    console.error('Error signing in:', error);
-    res.status(400).json({ error: 'Authentication failed' });
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 
 export const forgotPassword = async (req, res) => {
   try {
@@ -261,7 +298,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -318,7 +354,6 @@ export const logout = async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 };
-
 
 export const updateProfile = async (req, res) => {
   try {
@@ -384,7 +419,6 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-
 export const uploadAvatar = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -413,7 +447,6 @@ export const uploadAvatar = async (req, res) => {
     res.status(500).json({ message: "Failed to upload avatar" });
   }
 };
-
 
 export const refreshToken = async (req, res) => {
   try {

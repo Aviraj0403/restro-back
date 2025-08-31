@@ -5,7 +5,7 @@ const categorySchema = new mongoose.Schema({
         type: String, 
         required: true, 
         trim: true, 
-        unique: true 
+        // unique: true 
     },
     description: { 
         type: String, 
@@ -49,7 +49,7 @@ const categorySchema = new mongoose.Schema({
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
     },
 }, { timestamps: true });
 

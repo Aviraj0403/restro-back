@@ -6,19 +6,23 @@ import cookieParser from 'cookie-parser';
 import { logSessionActivity } from './middlewares/logSessionActivity.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import foodRoutes from './routes/food.routes.js';
+import catgoryRoutes from './routes/catgory.routes.js';
+
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';  // Import 'join' and 'dirname' from 'path'
-import { time } from 'console';
 
 // Get the current directory name in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-
+// const app1 =createrServer(Http)
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
+
 ];
 
 app.use(cors({
@@ -42,10 +46,11 @@ app.use(cookieParser());
 app.use(logSessionActivity);
 
 // API Routes
-app.use('/api', authRoutes);
-app.use('/api', userRoutes); 
-// app.use('/api', employeeRoutes);
-// app.use('/api', admitRoutes);
+app.use('/v1/api/auth', authRoutes);
+app.use('/v1/api/users', userRoutes);
+app.use('/v1/api/foods', foodRoutes);
+app.use('/v1/api/categories', catgoryRoutes);
+
 // app.use('/api', courseRoutes);
 // app.use('/api', examSubjectRoutes);
 // app.use('/api', subjectRoutes);
