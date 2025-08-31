@@ -18,13 +18,13 @@ import { verifyToken } from '../middlewares/verifyToken.js';
 import  upload  from '../middlewares/upload.js';
 const router = express.Router();
 
-router.post('/auth/register/google', registerViaGoogle);
+router.post('/register/google', registerViaGoogle);
 //hold on
-router.post('/auth/register/phone', registerViaPhone);
+router.post('/register/phone', registerViaPhone);
 
-router.post('/auth/customRegister', customRegister);
+router.post('/customRegister', customRegister);
 
-router.post('/auth/signIn', signIn);
+router.post('/signIn', signIn);
 
 router.post('/user/forgotPassword', forgotPassword);
 router.post('/user/resetPassword', resetPassword);

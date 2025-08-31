@@ -15,23 +15,27 @@ export const createCategory = async (req, res) => {
     const imageUrl = req.cloudinaryImageUrl || '';
     const publicId = req.cloudinaryPublicId || '';
 
+    // Clean up the temporary local file after the image is uploaded
+    const createdBy = req.user ? req.user._id : 'admin';
     if (req.file?.path && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
       console.log(`🧹 Deleted local temp file: ${req.file.path}`);
     }
 
+    // Create the new category without user info (since no token authentication is used)
     const newCategory = await Category.create({
       name,
       description,
       displayOrder,
       isFeatured,
       isRecommended,
-      image: imageUrl ? [imageUrl] : [],
+      image: imageUrl ? [imageUrl] : [],  // Include image if available
       publicId,
-      createdBy: req.user._id, // Assuming the `req.user` has the authenticated user ID
+      createdBy,  // You can leave this as `null` or assign a default user ID
     });
 
     res.status(201).json({ success: true, category: newCategory });
+
   } catch (error) {
     console.error("Error creating category:", error);
     res.status(500).json({ success: false, message: "Internal server error." });

@@ -16,7 +16,7 @@ const router = express.Router();
 
 // CREATE CATEGORY
 router.post("/createCategory", 
-  upload.single('image'),  
+  upload.single('image'), verifyToken, 
   uploadSingleImageToCloudinary, 
   createCategory
 );

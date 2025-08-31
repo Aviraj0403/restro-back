@@ -166,46 +166,57 @@ export const authMe = async (req, res) => {
 };
 // Sign-In (Username/Password or Firebase)
 export const signIn = async (req, res) => {
-  const { idToken, userName, password } = req.body;
-  // con
-  // sole.log("Received body:", req.body);
-
-  // Validate input
-  if (!userName || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
-  }
-
   try {
+    const { userName, email, password, idToken } = req.body;
+
+    if (!(userName || email) || !password) {
+      return res.status(400).json({ message: "Username/email or password missing" });
+    }
+
+    let userDetails;
+    
+    // Firebase Authentication check if idToken is present
     if (idToken) {
-      // Firebase sign-in
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const { uid } = decodedToken;
-      let user = await User.findOne({ firebaseUid: uid });
-      if (!user) {
-        return res.status(400).json({ error: 'User not found in the database' });
-      }
-      await generateToken(res, { uid, userName: user.userName, email: user.email });
-      res.status(200).json({ message: 'Sign-in successful', user });
-    } else if (userName && password) {
-      // Sign in via Username/Password
-      const user = await User.findOne({ userName }).select('+password');  // Include password in the query
+      userDetails = await User.findOne({ firebaseUid: uid });
 
-      // Check if user exists and validate password
-      if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(400).json({ error: 'Invalid credentials' });
+      if (!userDetails) {
+        return res.status(400).json({ message: "User not found in the database" });
       }
-
-      // Generate token for valid sign-in
-      await generateToken(res, { uid: user._id, userName: user.userName, email: user.email });
-      res.status(200).json({ message: 'Sign-in successful', user });
     } else {
-      res.status(400).json({ error: 'Invalid sign-in method' });
+      // If no idToken, use username/email to find user and check password
+      userDetails = await User.findOne({ $or: [{ userName }, { email }] }).select('+password');
+      
+      if (!userDetails || !(await bcrypt.compare(password, userDetails.password))) {
+        return res.status(401).json({ message: "Wrong credentials" });
+      }
     }
+
+    // Prepare user data
+    const userData = {
+      id: userDetails._id,
+      userName: userDetails.userName,
+      email: userDetails.email,
+      roleType: userDetails.roleType,
+    };
+
+    // Generate a token
+    const token = await generateToken(res, userData);
+
+    // Send response with token and userData
+    res.status(200).json({
+      userData,
+      token,
+      message: "User signed in successfully"
+    });
+
   } catch (error) {
-    console.error('Error signing in:', error);
-    res.status(400).json({ error: 'Authentication failed' });
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
+
 
 export const forgotPassword = async (req, res) => {
   try {
