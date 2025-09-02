@@ -1,86 +1,137 @@
 import Food from "../models/food.model.js";
 import cloudinary from '../config/cloudinaryConfig.js';  // Assuming Cloudinary is configured
-import fs from 'fs';
+import { promises as fs } from 'fs';
+ 
 import { uploadMultipleImagesToCloudinary, deleteImagesByUrlsFromCloudinary, uploadSingleImageToCloudinary } from './imageUploadController.js'; // Image upload helper
 import redis from 'redis';
 import { promisify } from 'util';
 import { clearAllRedisCache } from '../services/redis.service.js'; // Import Redis cache clearing function
-const client = redis.createClient();
+// const client = redis.createClient();
 const getAsync = promisify(client.get).bind(client);
 import mongoose from 'mongoose';
+import client from "../services/redisClient.js";
+export const createFood = async (req, res) => {
+  try {
+    const {
+      name,
+      description = "",
+      ingredients = [],
+      category,
+      isHotProduct = false,
+      isBudgetBite = false,
+      isSpecialOffer = false,
+      variants = [],
+      isFeatured = false,
+      isRecommended = false,
+      status = "Active",
+      cookTime = "",
+      itemType = "",
+      variety = "",
+      // createdBy = "admin", // Replace with real user ID in production
+      discount = 0,
+    } = req.body;
+    const createdBy = req.user.id;
+    // ✅ Validate required fields
+    if (!name || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and category are required.",
+      });
+    }
 
-// export const createFood = async (req, res) => {
-//     try {
-//         const {
-//             name,
-//             description,
-//             ingredients,
-//             category,
-//             foodImages, // This will be an array of file paths or image data
-//             isHotProduct = false,
-//             isBudgetBite = false,
-//             isSpecialOffer = false,
-//             variants,
-//             isFeatured = false,
-//             isRecommended = false,
-//             status = "Active",
-//             cookTime,
-//             itemType,
-//             variety,
-//             createdBy,
-//             discount = 0
-//         } = req.body;
+    // ✅ Process ingredients
+    let ingredientArray = [];
+    if (typeof ingredients === "string") {
+      ingredientArray = ingredients.split(",").map((i) => i.trim());
+    } else if (Array.isArray(ingredients)) {
+      ingredientArray = ingredients;
+    }
 
-//         // Validate required fields
-//         if (!name || !category) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Missing required fields: name and category."
-//             });
-//         }
+    // ✅ Validate variants
+    if (!Array.isArray(variants)) {
+      return res.status(400).json({
+        success: false,
+        message: "Variants must be an array.",
+      });
+    }
 
-//         // Handle image upload if foodImages are provided
-//         let imageUrls = [];
-//         if (foodImages && foodImages.length > 0) {
-//             // Ensure that foodImages are properly uploaded and we have the URLs
-//             imageUrls = await uploadMultipleImagesToCloudinary(foodImages); // This returns an array of URLs
-//         }
+    // ✅ Handle file uploads
+    const files = req.files; // multer adds this
+    if (!files || files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload at least one image.",
+      });
+    }
 
-//         // Create a new food item with the uploaded image URLs
-//         const newFood = await Food.create({
-//             name,
-//             description,
-//             ingredients,
-//             category,
-//             foodImages: imageUrls, // Attach the uploaded image URLs here
-//             isHotProduct,
-//             isBudgetBite,
-//             isSpecialOffer,
-//             variants,
-//             isFeatured,
-//             isRecommended,
-//             status,
-//             cookTime,
-//             itemType,
-//             variety,
-//             createdBy,
-//             discount,
-//         });
+    const imageUrls = [];
 
-//         // Return success response with the newly created food item
-//         res.status(201).json({
-//             success: true,
-//             message: "Food item created successfully.",
-//             food: newFood,
-//         });
-//     } catch (error) {
-//         console.error("Error creating food item:", error);
-//         res.status(500).json({
-//             success: false,
-//             message: "Internal server error occurred while creating the food item.",
-//         });
-//     }
-// };
+    for (const file of files) {
+      try {
+        // Upload to Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(file.path, {
+          folder: "food_images",
+          resource_type: "image",
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: "auto" },
+            { fetch_format: "webp" },
+          ],
+        });
+
+        imageUrls.push(uploadResult.secure_url);
+
+        // Delete local file after upload
+        fs.unlink(file.path);
+      } catch (uploadErr) {
+        console.error("❌ Cloudinary Upload Error:", uploadErr);
+        // Clean up uploaded images if partial upload
+        for (const uploaded of imageUrls) {
+          const publicId = uploaded.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(`food_images/${publicId}`);
+        }
+        return res.status(500).json({
+          success: false,
+          message: "Image upload failed. Please try again.",
+        });
+      }
+    }
+
+    // ✅ Create food in DB
+    const newFood = await Food.create({
+      name,
+      description,
+      ingredients: ingredientArray,
+      category,
+      foodImages: imageUrls,
+      isHotProduct,
+      isBudgetBite,
+      isSpecialOffer,
+      variants,
+      isFeatured,
+      isRecommended,
+      status,
+      cookTime,
+      itemType,
+      variety,
+      createdBy,
+      discount,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "✅ Food item created successfully.",
+      food: newFood,
+    });
+  } catch (error) {
+    console.error("❌ Error in createFood:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while creating food item.",
+    });
+  }
+};
+
 export const updateFoodImages = async (req, res) => {
     try {
         const { foodId } = req.params;
@@ -263,184 +314,182 @@ export const updateFoodImages = async (req, res) => {
 // };
 
 //redis
+
 export const getAllFood = async (req, res) => {
-    try {
-        const { page = 1, limit = 12, search = "", category } = req.query;
-        const skip = (page - 1) * limit;
-        const cacheKey = `foods:${category || 'all'}:${search}:${page}:${limit}`;
-
-        // Check cache
-        const cachedData = await getAsync(cacheKey);
-        if (cachedData) {
-            console.log('Fetching data from cache');
-            return res.json(JSON.parse(cachedData));
-        }
-
-        // MongoDB aggregation pipeline
-        let aggregationPipeline = [
-            { $match: category ? { category } : {} },
-            { $sort: { createdAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-            {
-                $project: {
-                    score: { $meta: 'textScore' },
-                    name: 1,
-                    description: 1,
-                    foodImages: 1,
-                    category: 1
-                }
-            }
-        ];
-
-        if (search) {
-            aggregationPipeline.unshift({
-                $match: {
-                    $text: { $search: search }
-                }
-            });
-        }
-
-        const foods = await Food.aggregate(aggregationPipeline).lean();
-
-        const totalFoods = await Food.countDocuments({
-            ...category ? { category } : {},
-            $text: { $search: search }
-        });
-
-        const pagination = {
-            total: totalFoods,
-            page: Number(page),
-            totalPages: Math.ceil(totalFoods / limit),
-            limit: Number(limit),
-        };
-
-        const responseData = { success: true, foods, pagination };
-
-        // Cache the result for 1 hour
-        client.setex(cacheKey, 3600, JSON.stringify(responseData));
-
-        return res.json(responseData);
-    } catch (error) {
-        console.error('Error fetching foods:', error);
-        return res.status(500).json({ success: false, message: 'Internal server error occurred.' });
-    }
-};
-
-export const createFood = async (req, res) => {
   try {
-    console.log('Request Body:', req.body);
-    
-    const {
-      name,
-      description,
-      ingredients,
-      category,
-      isHotProduct = false,
-      isBudgetBite = false,
-      isSpecialOffer = false,
-      variants,  // Keep as a stringified JSON array from the request body
-      isFeatured = false,
-      isRecommended = false,
-      status = "Active",
-      cookTime,
-      itemType,
-      variety,
-      createdBy = "aviraj",  // Expect ObjectId, not a string like "admin"
-      discount = 0
-    } = req.body;
+    const { page = 1, limit = 12, search = '', category } = req.query;
+    const skip = (page - 1) * limit;
+    const cacheKey = `foods:${category || 'all'}:${search}:${page}:${limit}`;
 
-    const foodImages = req.files;  // Getting the uploaded files from the `multer` middleware
-
-    // Validate required fields
-    if (!name || !category) {
-      console.log('Validation Failed: Missing name or category');
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields: name and category."
-      });
+    // Check cache
+    const cachedData = await client.get(cacheKey);
+    if (cachedData) {
+      console.log('✅ Fetching data from cache');
+      return res.json(JSON.parse(cachedData));
     }
 
-    // Parse variants string to array of objects
-    let parsedVariants = [];
-    if (variants) {
-      try {
-        parsedVariants = JSON.parse(variants);
-      } catch (error) {
-        console.log('Invalid variants format:', error);
-        return res.status(400).json({
-          success: false,
-          message: "Invalid variants format. Please ensure it's a valid JSON array."
-        });
-      }
-    }
+    console.log('⚡ Fetching data from MongoDB');
 
-    // Validate variants (it should be an array of objects)
-    if (parsedVariants && !Array.isArray(parsedVariants)) {
-      console.log('Validation Failed: Invalid variants format');
-      return res.status(400).json({
-        success: false,
-        message: "Variants should be an array of objects."
-      });
-    }
+    // Base match
+    let matchStage = {};
+    if (category) matchStage.category = category;
+    if (search) matchStage.$text = { $search: search };
 
-    // Handle image upload if foodImages are provided
-    let imageUrls = [];
-    if (foodImages && foodImages.length > 0) {
-      console.log('Food images provided:', foodImages);
+    // Build pipeline
+    let aggregationPipeline = [
+      { $match: matchStage },
+      { $sort: search ? { score: { $meta: 'textScore' } } : { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: Number(limit) },
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          foodImages: 1,
+          category: 1,
+          ...(search ? { score: { $meta: 'textScore' } } : {}),
+        },
+      },
+    ];
 
-      try {
-        imageUrls = await uploadMultipleImagesToCloudinary(foodImages); // This returns an array of URLs
-        console.log('Uploaded image URLs:', imageUrls);
-      } catch (uploadError) {
-        console.error('Error uploading images to Cloudinary:', uploadError);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to upload images to Cloudinary.",
-        });
-      }
-    } else {
-      console.log('No food images provided.');
-    }
+    const foods = await Food.aggregate(aggregationPipeline);
 
-    // Create a new food item with the uploaded image URLs
-    console.log('Creating food item...');
-    const newFood = await Food.create({
-      name,
-      description,
-      ingredients: ingredients.split(','),  // Assuming ingredients are comma-separated
-      category,
-      imageUrls,  // Attach the uploaded image URLs here
-      isHotProduct,
-      isBudgetBite,
-      isSpecialOffer,
-      variants: parsedVariants,  // Use the parsed variants
-      isFeatured,
-      isRecommended,
-      status,
-      cookTime,
-      itemType,
-      variety,
-      createdBy,
-      discount,
-    });
+    // Count for pagination
+    const totalFoods = await Food.countDocuments(matchStage);
 
-    console.log('Food item created:', newFood);
+    const pagination = {
+      total: totalFoods,
+      page: Number(page),
+      totalPages: Math.ceil(totalFoods / limit),
+      limit: Number(limit),
+    };
 
-    // Return success response with the newly created food item
-    res.status(201).json({
-      success: true,
-      message: "Food item created successfully.",
-      food: newFood,
-    });
+    const responseData = { success: true, foods, pagination };
+
+    // Cache the result for 1 hour
+    await client.setEx(cacheKey, 3600, JSON.stringify(responseData));
+
+    return res.json(responseData);
   } catch (error) {
-    console.error('Error creating food item:', error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error occurred while creating the food item.",
-    });
+    console.error('❌ Error fetching foods:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error occurred.' });
   }
 };
+
+// export const createFood = async (req, res) => {
+//   try {
+//     console.log('Request Body:', req.body);
+    
+//     const {
+//       name,
+//       description,
+//       ingredients,
+//       category,
+//       isHotProduct = false,
+//       isBudgetBite = false,
+//       isSpecialOffer = false,
+//       variants,  // Keep as a stringified JSON array from the request body
+//       isFeatured = false,
+//       isRecommended = false,
+//       status = "Active",
+//       cookTime,
+//       itemType,
+//       variety,
+//       createdBy = "aviraj",  // Expect ObjectId, not a string like "admin"
+//       discount = 0
+//     } = req.body;
+
+//     const foodImages = req.files;  // Getting the uploaded files from the `multer` middleware
+
+//     // Validate required fields
+//     if (!name || !category) {
+//       console.log('Validation Failed: Missing name or category');
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required fields: name and category."
+//       });
+//     }
+
+//     // Parse variants string to array of objects
+//     let parsedVariants = [];
+//     if (variants) {
+//       try {
+//         parsedVariants = JSON.parse(variants);
+//       } catch (error) {
+//         console.log('Invalid variants format:', error);
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid variants format. Please ensure it's a valid JSON array."
+//         });
+//       }
+//     }
+
+//     // Validate variants (it should be an array of objects)
+//     if (parsedVariants && !Array.isArray(parsedVariants)) {
+//       console.log('Validation Failed: Invalid variants format');
+//       return res.status(400).json({
+//         success: false,
+//         message: "Variants should be an array of objects."
+//       });
+//     }
+
+//     // Handle image upload if foodImages are provided
+//     let imageUrls = [];
+//     if (foodImages && foodImages.length > 0) {
+//       console.log('Food images provided:', foodImages);
+
+//       try {
+//         imageUrls = await uploadMultipleImagesToCloudinary(foodImages); // This returns an array of URLs
+//         console.log('Uploaded image URLs:', imageUrls);
+//       } catch (uploadError) {
+//         console.error('Error uploading images to Cloudinary:', uploadError);
+//         return res.status(500).json({
+//           success: false,
+//           message: "Failed to upload images to Cloudinary.",
+//         });
+//       }
+//     } else {
+//       console.log('No food images provided.');
+//     }
+
+//     // Create a new food item with the uploaded image URLs
+//     console.log('Creating food item...');
+//     const newFood = await Food.create({
+//       name,
+//       description,
+//       ingredients: ingredients.split(','),  // Assuming ingredients are comma-separated
+//       category,
+//       imageUrls,  // Attach the uploaded image URLs here
+//       isHotProduct,
+//       isBudgetBite,
+//       isSpecialOffer,
+//       variants: parsedVariants,  // Use the parsed variants
+//       isFeatured,
+//       isRecommended,
+//       status,
+//       cookTime,
+//       itemType,
+//       variety,
+//       createdBy,
+//       discount,
+//     });
+
+//     console.log('Food item created:', newFood);
+
+//     // Return success response with the newly created food item
+//     res.status(201).json({
+//       success: true,
+//       message: "Food item created successfully.",
+//       food: newFood,
+//     });
+//   } catch (error) {
+//     console.error('Error creating food item:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error occurred while creating the food item.",
+//     });
+//   }
+// };
 
 // export const getAllFood = async (req, res) => {
 //   try {

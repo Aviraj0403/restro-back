@@ -13,7 +13,7 @@ import { verifyToken } from '../middlewares/verifyToken.js';
 import upload from '../middlewares/upload.js'; 
 
 const router = express.Router();
-router.post('/createFood', upload.array('foodImages', 10), createFood); 
+router.post('/createFood', upload.array('foodImages', 10),verifyToken, createFood); 
 // router.post('/createFood', createFood);
 router.patch('/updateFood/:foodId', updateFood);
 router.delete('/deleteFood/:id', deleteFood);

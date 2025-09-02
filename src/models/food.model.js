@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 function arrayLimit(val) {
-  return val.length <= 10; 
+  return val.length <= 10;
 }
 
 const foodSchema = new mongoose.Schema({
@@ -29,16 +29,17 @@ const foodSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
-  imageUrls: {
+  foodImages: {
     type: [String],
     required: [true, 'Food must have at least one image'],
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return Array.isArray(v) && v.length > 0;
       },
       message: 'Food must have at least one image.',
     },
   },
+
   isHotProduct: {
     type: Boolean,
     default: false,
@@ -87,7 +88,7 @@ const foodSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: false,
   },
   discount: {
     type: Number,
@@ -99,7 +100,7 @@ const foodSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-foodSchema.virtual('priceAfterDiscount').get(function() {
+foodSchema.virtual('priceAfterDiscount').get(function () {
   return this.discount > 0 ? this.variants.map(variant => {
     variant.priceAfterDiscount = variant.price - (variant.price * (this.discount / 100));
     return variant;
@@ -107,7 +108,7 @@ foodSchema.virtual('priceAfterDiscount').get(function() {
 });
 
 
-foodSchema.pre('save', function(next) {
+foodSchema.pre('save', function (next) {
   if (this.discount < 0 || this.discount > 100) {
     return next(new Error('Discount must be between 0 and 100'));
   }
@@ -125,7 +126,7 @@ foodSchema.index({ ingredients: 'text' });
 // JSON transformation
 foodSchema.set('toJSON', {
   virtuals: true,
-  transform: function(doc, ret) {
+  transform: function (doc, ret) {
     delete ret._id;
     delete ret.__v;
     ret.priceAfterDiscount = ret.priceAfterDiscount || ret.variants.map(v => v.price);

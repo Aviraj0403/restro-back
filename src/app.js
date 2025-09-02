@@ -39,7 +39,9 @@ app.use(cors({
 }));
 
 // Middleware for JSON body parsing and cookies
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
 app.use(cookieParser());
 
 // Session activity logging middleware
@@ -66,7 +68,7 @@ app.get('/robots.txt', (req, res) => {
 
 // Root route (Health check or default response)
 app.get('/', (req, res) => {
-  res.send('Hello AviRaj! PRoduction is running smoothly! ');
+  res.send('Hello Avi Raj ! Production is running smoothly! ');
 });
 
 // Centralized error handling (for unhandled errors)
