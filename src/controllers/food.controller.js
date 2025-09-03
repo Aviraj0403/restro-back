@@ -1,15 +1,12 @@
 import Food from "../models/food.model.js";
 import cloudinary from '../config/cloudinaryConfig.js';  // Assuming Cloudinary is configured
 import { promises as fs } from 'fs';
- 
+import client from '../config/redisClient.js'; // Redis client
 import { uploadMultipleImagesToCloudinary, deleteImagesByUrlsFromCloudinary, uploadSingleImageToCloudinary } from './imageUploadController.js'; // Image upload helper
 import redis from 'redis';
 import { promisify } from 'util';
 import { clearAllRedisCache } from '../services/redis.service.js'; // Import Redis cache clearing function
-// const client = redis.createClient();
-const getAsync = promisify(client.get).bind(client);
 import mongoose from 'mongoose';
-import client from "../services/redisClient.js";
 export const createFood = async (req, res) => {
   try {
     const {
@@ -324,7 +321,7 @@ export const getAllFood = async (req, res) => {
     // Check cache
     const cachedData = await client.get(cacheKey);
     if (cachedData) {
-      console.log('✅ Fetching data from cache');
+      console.log('✅ Fetching data from Redis cache');
       return res.json(JSON.parse(cachedData));
     }
 
@@ -375,6 +372,7 @@ export const getAllFood = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal server error occurred.' });
   }
 };
+
 
 // export const createFood = async (req, res) => {
 //   try {

@@ -27,9 +27,9 @@ export const verifyToken = (req, res, next) => {
       });
     }
 
-    const { id, email, roleType} = decoded.data;
+    const { id, userName, email, roleType} = decoded.data;
     // console.log("Decoded token data:", decoded.data);
-    req.user = { id, email, roleType };
+    req.user = { id, userName, email, roleType };
 
     console.log("User token verified:", req.user);
     next();
