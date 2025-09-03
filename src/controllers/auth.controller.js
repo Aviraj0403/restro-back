@@ -200,7 +200,6 @@ export const signIn = async (req, res) => {
       email: userDetails.email,
       roleType: userDetails.roleType,
     };
-
     // Generate a token
     const token = await generateToken(res, userData);
 
