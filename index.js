@@ -6,7 +6,7 @@ import { startCluster } from './serviceWorker.js'; // Import startCluster
 
 dotenv.config(); // Load environment variables
 
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 5005;
 
 const startServer = () => {
   // Start the server after DB connection is successful
