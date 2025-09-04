@@ -48,6 +48,11 @@ app.use(cookieParser());
 
 // Session activity logging middleware
 app.use(logSessionActivity);
+app.use(express.static(join(__dirname, 'public')));
+
+app.get('/robots.txt', (req, res) => {
+    res.sendFile(join(__dirname, 'public', 'robots.txt'));
+  });
 
 // API Routes
 app.use('/v1/api/auth', authRoutes);
@@ -61,12 +66,6 @@ app.use('/v1/api/categories', catgoryRoutes);
 // app.use('/api', marksheetRoutes);
 // app.use('/api', ticketRoutes);
 
-  // In development, serve assets (e.g., images, JavaScript) from 'public' folder
-app.use(express.static(join(__dirname, 'public')));
-
-app.get('/robots.txt', (req, res) => {
-    res.sendFile(join(__dirname, 'public', 'robots.txt'));
-  });
 
 // Root route (Health check or default response)
 app.get('/', (req, res) => {
