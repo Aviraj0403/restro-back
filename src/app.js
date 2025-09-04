@@ -22,7 +22,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://restro-admin-v1.vercel.app'
+  'https://restro-admin-v1.vercel.app',
+  'https://restro-admin-v1.vercel.app/'
 
 ];
 
