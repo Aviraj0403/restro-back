@@ -1,11 +1,11 @@
 import Food from "../models/food.model.js";
 import cloudinary from '../config/cloudinaryConfig.js';  // Assuming Cloudinary is configured
 import { promises as fs } from 'fs';
-import client from '../config/redisClient.js'; // Redis client
+// import client from '../config/redisClient.js'; // Redis client
 import { uploadMultipleImagesToCloudinary, deleteImagesByUrlsFromCloudinary, uploadSingleImageToCloudinary } from './imageUploadController.js'; // Image upload helper
 import redis from 'redis';
 import { promisify } from 'util';
-import { clearAllRedisCache } from '../services/redis.service.js'; // Import Redis cache clearing function
+// import { clearAllRedisCache } from '../services/redis.service.js'; // Import Redis cache clearing function
 import mongoose from 'mongoose';
 export const createFood = async (req, res) => {
   try {
@@ -319,11 +319,11 @@ export const getAllFood = async (req, res) => {
     const cacheKey = `foods:${category || 'all'}:${search}:${page}:${limit}`;
 
     // Check cache
-    const cachedData = await client.get(cacheKey);
-    if (cachedData) {
-      console.log('✅ Fetching data from Redis cache');
-      return res.json(JSON.parse(cachedData));
-    }
+    // const cachedData = await client.get(cacheKey);
+    // if (cachedData) {
+    //   console.log('✅ Fetching data from Redis cache');
+    //   return res.json(JSON.parse(cachedData));
+    // }
 
     console.log('⚡ Fetching data from MongoDB');
 
@@ -364,7 +364,7 @@ export const getAllFood = async (req, res) => {
     const responseData = { success: true, foods, pagination };
 
     // Cache the result for 1 hour
-    await client.setEx(cacheKey, 3600, JSON.stringify(responseData));
+    // await client.setEx(cacheKey, 3600, JSON.stringify(responseData));
 
     return res.json(responseData);
   } catch (error) {
@@ -675,7 +675,7 @@ export const deleteFood = async (req, res) => {
 
         // Delete food item from the database
         await Food.findByIdAndDelete(id);
-        await clearAllRedisCache();
+        // await clearAllRedisCache();
         return res.json({
             success: true,
             message: "Food item deleted successfully.",
