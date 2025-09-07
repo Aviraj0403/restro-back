@@ -30,14 +30,20 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String, 
-      required: function() {
-        return !this.firebaseUid; // Password required only for custom registration
-      },
       select: false,  // Don't include it in queries by default
+      validate: {
+        validator: function(value) {
+          if (!this.firebaseUid && !value) {
+            return false; // Password is required if there's no firebaseUid
+          }
+          return true;  // Otherwise, password is optional
+        },
+        message: 'Password is required for custom registration.',
+      },
     },
     roleType: {
       type: String,
-      enum: ['customer', 'admin', 'deliveryBoy'],
+      enum: ['customer', 'admin', 'deliveryBoy', 'user'],  // Added 'user' to enum
       default: 'customer',
       required: true,
     },
