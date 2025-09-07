@@ -30,7 +30,9 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String, 
-      required: false, 
+      required: function() {
+        return !this.firebaseUid; // Password required only for custom registration
+      },
       select: false,  // Don't include it in queries by default
     },
     roleType: {

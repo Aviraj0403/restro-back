@@ -3,7 +3,8 @@ import {
   registerViaGoogle,
   registerViaPhone,
   customRegister,
-  signIn,
+  signInWithCredentials,
+  signInWithGoogle,
   logout,
   forgotPassword,
   resetPassword,
@@ -24,7 +25,8 @@ router.post('/register/phone', registerViaPhone);
 
 router.post('/customRegister', customRegister);
 
-router.post('/signIn', signIn);
+router.post('/signIn', signInWithCredentials);
+router.post('/googleSignIn', signInWithGoogle);
 
 router.post('/user/forgotPassword', forgotPassword);
 router.post('/user/resetPassword', resetPassword);

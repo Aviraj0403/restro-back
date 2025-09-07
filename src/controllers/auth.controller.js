@@ -165,32 +165,21 @@ export const authMe = async (req, res) => {
   }
 };
 // Sign-In (Username/Password or Firebase)
-export const signIn = async (req, res) => {
+// Function to handle traditional username/email and password sign-in
+export const signInWithCredentials = async (req, res) => {
   try {
-    const { userName, email, password, idToken } = req.body;
+    const { userName, email, password } = req.body;
 
+    // Check if username/email and password are provided
     if (!(userName || email) || !password) {
       return res.status(400).json({ message: "Username/email or password missing" });
     }
 
-    let userDetails;
-    
-    // Firebase Authentication check if idToken is present
-    if (idToken) {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const { uid } = decodedToken;
-      userDetails = await User.findOne({ firebaseUid: uid });
+    // Find user in the database based on username or email
+    let userDetails = await User.findOne({ $or: [{ userName }, { email }] }).select('+password');
 
-      if (!userDetails) {
-        return res.status(400).json({ message: "User not found in the database" });
-      }
-    } else {
-      // If no idToken, use username/email to find user and check password
-      userDetails = await User.findOne({ $or: [{ userName }, { email }] }).select('+password');
-      
-      if (!userDetails || !(await bcrypt.compare(password, userDetails.password))) {
-        return res.status(401).json({ message: "Wrong credentials" });
-      }
+    if (!userDetails || !(await bcrypt.compare(password, userDetails.password))) {
+      return res.status(401).json({ message: "Wrong credentials" });
     }
 
     // Prepare user data
@@ -200,22 +189,75 @@ export const signIn = async (req, res) => {
       email: userDetails.email,
       roleType: userDetails.roleType,
     };
-    // Generate a token
+
+    // Generate a token for the user
     const token = await generateToken(res, userData);
 
-    // Send response with token and userData
+    // Send response with user data and token
     res.status(200).json({
       userData,
       token,
-      message: "User signed in successfully"
+      message: "User signed in successfully",
     });
 
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong during credentials sign-in" });
   }
 };
 
+
+// Function to handle Google Sign-In with Firebase ID Token
+export const signInWithGoogle = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: "ID Token is required" });
+    }
+
+    // Verify the ID Token with Firebase Admin SDK
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email, name } = decodedToken;
+
+    // Check if the user exists in the database by Firebase UID
+    let user = await User.findOne({ firebaseUid: uid });
+
+    if (!user) {
+      // If user doesn't exist, create a new user in the database
+      user = new User({
+        firebaseUid: uid,
+        email,
+        userName: name,  // You can store the name or generate a unique one
+        roleType: 'user',  // Adjust as necessary
+      });
+
+      await user.save();
+    }
+
+    // Prepare user data
+    const userData = {
+      id: user._id,
+      userName: user.userName,
+      email: user.email,
+      roleType: user.roleType,
+    };
+
+    // Generate token for the user
+    const token = await generateToken(res, userData);
+
+    // Send the response with token and user data
+    res.status(200).json({
+      userData,
+      token,
+      message: "User signed in successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong during Google sign-in" });
+  }
+};
 
 export const forgotPassword = async (req, res) => {
   try {
