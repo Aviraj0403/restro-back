@@ -9,7 +9,8 @@ import {
     getAllCustomers,
   getAllAdmins,
   getAllDeliveryBoys,
-  getAllUsers
+  getAllUsers,
+  getUserDetails,
 
        } 
 from "../controllers/user.controller.js";
@@ -42,6 +43,6 @@ router.get('/deliveryBoys', getAllDeliveryBoys);
 
 // Route to get all regular users
 router.get('/regular', getAllUsers);
-// router.get('/user/:userId', verifyToken,getUserDetails);
+router.get('/user/:userId', verifyToken,getUserDetails);
 
 export default router;
