@@ -204,7 +204,7 @@ export const getAllUsers = async (req, res) => {
 export const getUserDetails = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId).select("-password"); // Select all except the password
+    const user = await users.findById(userId).select("-password"); // Select all except the password
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
