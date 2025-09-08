@@ -1,6 +1,6 @@
 import users from "../models/user.model.js";
 import mongoose from "mongoose";
-
+import { verifyToken } from '../middlewares/verifyToken.js'; 
 export const addAddress = async (req, res) => {
   try {
     const user = await users.findById(req.user.id);
@@ -115,5 +115,95 @@ export const getTotalUsers = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+
+
+
+// Helper function to fetch users by role without pagination
+export const getUsersByRoleHelper = async (roleType) => {
+  return await users.find({ roleType }).select('-password');
+};
+
+// Fetch all customers
+export const getAllCustomers = async (req, res) => {
+  try {
+    const users = await getUsersByRoleHelper('customer');
+    return res.status(200).json({
+      success: true,
+      message: 'Customers fetched successfully',
+      data: users,
+    });
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customers',
+    });
+  }
+};
+
+// Fetch all admins
+export const getAllAdmins = async (req, res) => {
+  try {
+    const users = await getUsersByRoleHelper('admin');
+    return res.status(200).json({
+      success: true,
+      message: 'Admins fetched successfully',
+      data: users,
+    });
+  } catch (error) {
+    console.error('Error fetching admins:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admins',
+    });
+  }
+};
+
+// Fetch all delivery boys
+export const getAllDeliveryBoys = async (req, res) => {
+  try {
+    const users = await getUsersByRoleHelper('deliveryBoy');
+    return res.status(200).json({
+      success: true,
+      message: 'Delivery boys fetched successfully',
+      data: users,
+    });
+  } catch (error) {
+    console.error('Error fetching delivery boys:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch delivery boys',
+    });
+  }
+};
+
+// Fetch all regular users
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await getUsersByRoleHelper('user');
+    return res.status(200).json({
+      success: true,
+      message: 'Users fetched successfully',
+      data: users,
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users',
+    });
+  }
+};
+
+
+
+
+
 
 

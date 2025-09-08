@@ -6,6 +6,11 @@ import {
     setDefaultAddress,
     getUserAddresses,
     getTotalUsers,
+    getAllCustomers,
+  getAllAdmins,
+  getAllDeliveryBoys,
+  getAllUsers
+
        } 
 from "../controllers/user.controller.js";
 import { verifyToken } from '../middlewares/verifyToken.js';
@@ -21,5 +26,22 @@ router.get('/user/gettotalusers', verifyToken, getTotalUsers);
 
 
 router.patch('/user/address/:id/set-default', verifyToken, setDefaultAddress);
+
+
+
+// router.get('/role/:role', verifyToken, getUsersByRole);
+
+// Fetch user details by userId
+router.get('/customers', getAllCustomers);
+
+// Route to get all admins
+router.get('/admins', getAllAdmins);
+
+// Route to get all delivery boys
+router.get('/deliveryBoys', getAllDeliveryBoys);
+
+// Route to get all regular users
+router.get('/regular', getAllUsers);
+// router.get('/user/:userId', verifyToken,getUserDetails);
 
 export default router;

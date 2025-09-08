@@ -15,10 +15,10 @@ import upload from '../middlewares/upload.js';
 const router = express.Router();
 router.post('/createFood', upload.array('foodImages', 10),verifyToken, createFood); 
 // router.post('/createFood', createFood);
-router.patch('/updateFood/:foodId', updateFood);
+router.patch('/updateFood/:foodId', upload.array('foodImages'), updateFood); 
 router.delete('/deleteFood/:id', deleteFood);
 
-router.get('/getFood/:id', getFood);
+router.get('/getFood/:foodId', getFood);
 
 router.get('/getAllFood', getAllFood);
 
