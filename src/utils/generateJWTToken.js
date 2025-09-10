@@ -7,7 +7,7 @@ const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET || process.env.JWTSECR
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET || "YourRefreshTokenSecret";
 
 // Correct isProduction check: true when in production mode
-const isProduction = process.env.NODE_ENV === "development" ;
+const isProduction = process.env.NODE_ENV === "production" ;
 console.log("isProduction:", isProduction);
 
 /**
@@ -32,7 +32,7 @@ export async function generateToken(res, userDetails) {
   // 🔐 Cookie options (secure only in production, with path)
   const cookieOptions = {
     httpOnly: true,
-    secure: true, // Set to true to ensure cookies are only sent over HTTPS,
+    secure: isProduction, // Set to true to ensure cookies are only sent over HTTPS,
     sameSite: "None",
 
     path: "/",   // IMPORTANT: must include path for clearing cookie later
