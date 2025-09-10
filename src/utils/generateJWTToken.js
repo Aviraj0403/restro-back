@@ -36,16 +36,13 @@ export async function generateToken(res, userDetails) {
     sameSite: "None",
 
     path: "/",   // IMPORTANT: must include path for clearing cookie later
+    maxAge: 60 * 60 * 1000, 
   };
 
-  res.cookie("accessToken", accessToken, {
-    ...cookieOptions,
-    maxAge: 60 * 60 * 1000, // 1 hour
-  });
-
+   res.cookie("accessToken", accessToken, cookieOptions);
   res.cookie("refreshToken", refreshToken, {
     ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration for refreshToken
   });
 
   return { accessToken, refreshToken };
