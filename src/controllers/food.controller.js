@@ -4,7 +4,6 @@ import { promises as fs } from 'fs';
 // import client from '../config/redisClient.js'; // Redis client
 import { uploadMultipleImagesToCloudinary, deleteImagesByUrlsFromCloudinary, uploadSingleImageToCloudinary } from './imageUploadController.js'; // Image upload helper
 import redis from 'redis';
-import { promisify } from 'util';
 // import { clearAllRedisCache } from '../services/redis.service.js'; // Import Redis cache clearing function
 import mongoose from 'mongoose';
 export const createFood = async (req, res) => {
@@ -605,38 +604,59 @@ export const updateFood = async (req, res) => {
     });
   }
 };
-
-
-
-// Delete food item by ID
 export const deleteFood = async (req, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        const food = await Food.findById(id).lean();
+    // Fetch the food item to get associated image URLs before deletion
+    const food = await Food.findById(id).lean();
 
-        if (!food) {
-            return res.status(404).json({
-                success: false,
-                message: "Food item not found.",
-            });
-        }
-
-        // Delete food item from the database
-        await Food.findByIdAndDelete(id);
-        // await clearAllRedisCache();
-        return res.json({
-            success: true,
-            message: "Food item deleted successfully.",
-        });
-    } catch (error) {
-        console.error("Error deleting food:", error);
-        return res.status(500).json({
-            success: false,
-            message: "An error occurred while deleting the food item.",
-        });
+    // Check if the food item exists
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: "Food item not found.",
+      });
     }
+
+    // Delete images from Cloudinary if there are any
+    if (food.foodImages && food.foodImages.length > 0) {
+      for (const imageUrl of food.foodImages) {
+        // Regex to extract the public_id from Cloudinary URLs
+        const regex = /\/upload\/(?:v\d+\/)?([^\.]+)/;
+        const match = imageUrl.match(regex);
+
+        if (match && match[1]) {
+          const publicId = match[1]; // Extracted public_id
+          try {
+            // Deleting the image from Cloudinary using the public_id
+            await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+            console.log(`Image ${publicId} deleted from Cloudinary.`);
+          } catch (err) {
+            console.error(`Error deleting image ${publicId} from Cloudinary:`, err);
+            // Optionally, continue or decide if you want to return an error response
+          }
+        }
+      }
+    }
+
+    // Now delete the food item from the database
+    await Food.findByIdAndDelete(id);
+
+    // Return a success response after deletion
+    return res.json({
+      success: true,
+      message: "Food item and associated images deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting food:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the food item. Please try again later.",
+    });
+  }
 };
+
 
 // Get foods by category
 export const getFoodByCategory = async (req, res) => {
