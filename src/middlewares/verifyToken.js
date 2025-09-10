@@ -11,7 +11,7 @@ export const verifyToken = (req, res, next) => {
   const cookieToken = req.cookies?.accessToken;
   const headerToken = req.headers.authorization?.split(" ")[1];
   const token = cookieToken || headerToken;
-
+  console.log("Extracted token:", token);
   if (!token) {
     return res.status(401).json({
       message: "Access Denied! Token Broken or Expired",
