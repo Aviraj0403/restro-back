@@ -33,7 +33,7 @@ export async function generateToken(res, userDetails) {
   const cookieOptions = {
     httpOnly: true,
     secure: 1, // Set to true to ensure cookies are only sent over HTTPS,
-    sameSite: "None",
+    sameSite: "Lax",
 
     path: "/",   // IMPORTANT: must include path for clearing cookie later
   };
