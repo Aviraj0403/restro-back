@@ -7,6 +7,9 @@ const secret = process.env.ACCESS_TOKEN_SECRET;
 
 export const verifyToken = (req, res, next) => {
   console.log("Verifying token...");
+  console.log("Cookies:", req.cookies);
+  console.log("Authorization Header:", req.headers.authorization);
+  
 
   const cookieToken = req.cookies?.accessToken;
   const headerToken = req.headers.authorization?.split(" ")[1];
