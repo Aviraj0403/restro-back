@@ -68,7 +68,7 @@ export const generateToken = async (res, userDetails) => {
     maxAge: 60 * 60 * 1000, // Cookie expiration time in milliseconds (1 hour)
     httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
     sameSite: "strict", // Ensures cookie is sent with same-origin requests
-    secure: process.env.NODE_ENV !== "development", // Use secure cookies in production
+    secure: true, // Use secure cookies in production
   });
 
   // You could also return the token if needed:
