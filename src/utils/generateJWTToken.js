@@ -72,5 +72,5 @@ export const generateToken = async (res, userDetails) => {
   });
 
   // You could also return the token if needed:
-  // return token;
+  return token;
 };
