@@ -11,9 +11,13 @@ export const verifyToken = (req, res, next) => {
   console.log("Authorization Header:", req.headers.authorization);
   
 
-  const cookieToken = req.cookies?.accessToken;
-  const headerToken = req.headers.authorization?.split(" ")[1];
-  const token = cookieToken || headerToken;
+const cookieToken = req.cookies?.accessToken;
+console.log("Cookie Token:", cookieToken);
+const headerToken = req.headers.authorization?.split(" ")[1];
+console.log("Header Token:", headerToken);
+const token = cookieToken || headerToken;
+console.log("Extracted Token:", token);
+
   console.log("Extracted token:", token);
   if (!token) {
     return res.status(401).json({
@@ -23,7 +27,7 @@ export const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
+   console.log("Decoded Token:", decoded);
     if (!decoded?.data) {
       return res.status(401).json({
         message: "User data not available",
