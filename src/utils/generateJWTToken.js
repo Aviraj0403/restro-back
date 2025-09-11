@@ -67,7 +67,7 @@ export const generateToken = async (res, userDetails) => {
   res.cookie("jwt", token, {
     maxAge: 60 * 60 * 1000, // Cookie expiration time in milliseconds (1 hour)
     httpOnly: true, // Prevents client-side JavaScript from accessing the cookie
-    sameSite: "strict", // Ensures cookie is sent with same-origin requests
+    sameSite: "None", // Ensures cookie is sent with same-origin requests
     secure: true, // Use secure cookies in production
   });
 
