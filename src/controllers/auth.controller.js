@@ -178,10 +178,19 @@ export const signInWithCredentials = async (req, res) => {
     // Find user in the database based on username or email
     let userDetails = await User.findOne({ $or: [{ userName }, { email }] }).select('+password');
 
-    if (!userDetails || !(await bcrypt.compare(password, userDetails.password))) {
-      return res.status(401).json({ message: "Wrong credentials" });
-    }
+    // if (!userDetails || !(await bcrypt.compare(password, userDetails.password))) {
+    //   return res.status(401).json({ message: "Wrong credentials" });
+    // }
 
+     const isPasswordMatched = await comparePassword(
+      userDetails?.password,
+      password
+    );
+    if (!isPasswordMatched) {
+      return res.status(401).json({
+        message: "wrong userName or password",
+      });
+    }
     // Prepare user data
     const userData = {
       id: userDetails._id,
@@ -190,8 +199,10 @@ export const signInWithCredentials = async (req, res) => {
       roleType: userDetails.roleType,
     };
 
-    // Generate a token for the user
+    req.user = userData;
+    console.log("userDataLoginPAge", userData);
     const token = await generateToken(res, userData);
+    // const token = await generateToken(res, userData);
 
     // Send response with user data and token
     res.status(200).json({
