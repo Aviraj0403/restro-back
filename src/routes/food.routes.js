@@ -7,7 +7,7 @@ import {
     getAllFood,
     getFoodByCategory,
     getTotalFood,
-    updateFoodImages
+    updateFoodImages, getAdminFood ,getMenuFood
 } from '../controllers/food.controller.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 import upload from '../middlewares/upload.js'; 
@@ -21,6 +21,8 @@ router.delete('/deleteFood/:id', deleteFood);
 router.get('/getFood/:foodId', getFood);
 
 router.get('/getAllFood', getAllFood);
+router.get('/getAdminFood', verifyToken, getAdminFood);
+router.get('/getMenuFood', getMenuFood);
 
 router.get('/getFoodByCategory/category', getFoodByCategory);
 

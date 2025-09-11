@@ -121,7 +121,11 @@ foodSchema.index({ isHotProduct: 1 });
 foodSchema.index({ isBudgetBite: 1 });
 foodSchema.index({ isFeatured: 1 });
 foodSchema.index({ isRecommended: 1 });
-foodSchema.index({ ingredients: 'text' });
+foodSchema.index({ name: 'text', ingredients: 'text' });
+
+foodSchema.index({ createdAt: -1 });  // To speed up sorting by createdAt
+foodSchema.index({ price: 1 });  // If you're sorting/filtering based on price
+
 
 // JSON transformation
 foodSchema.set('toJSON', {

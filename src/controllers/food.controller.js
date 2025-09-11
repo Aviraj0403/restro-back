@@ -1,4 +1,5 @@
 import Food from "../models/food.model.js";
+import Category from "../models/category.model.js";  // Assuming Foods are related to category  
 import cloudinary from '../config/cloudinaryConfig.js';  // Assuming Cloudinary is configured
 import { promises as fs } from 'fs';
 // import client from '../config/redisClient.js'; // Redis client
@@ -179,7 +180,7 @@ export const updateFoodImages = async (req, res) => {
     }
 };
 
-export const getAllFood = async (req, res) => {
+export const getAdminFood = async (req, res) => {
   try {
     const { page = 1, limit = 12, search = '', category } = req.query;
     const skip = (page - 1) * limit;
@@ -270,6 +271,181 @@ export const getAllFood = async (req, res) => {
   }
 };
 
+export const getAllFood = async (req, res) => {
+  try {
+    // Destructuring query parameters
+    const { page = 1, limit = 12, search = '', category, isHotProduct, isBudgetBite, isFeatured, isRecommended } = req.query;
+
+    // Basic validation for pagination
+    const pageNum = Math.max(1, Number(page));  // Ensure positive page number
+    const limitNum = Math.min(100, Number(limit));  // Cap limit to avoid performance issues with too many results
+    const skip = (pageNum - 1) * limitNum;
+
+    // Aggregation pipeline
+    let pipeline = [];
+
+    // Filters
+    let matchStage = {};
+
+    // Add text search filter if search query is provided
+    if (search) {
+      matchStage.$text = { $search: search };  // Full-text search for name, description, and ingredients
+    }
+
+    // Add other filters
+    if (category) matchStage.category = mongoose.Types.ObjectId(category);
+    if (isHotProduct) matchStage.isHotProduct = true;
+    if (isBudgetBite) matchStage.isBudgetBite = true;
+    if (isFeatured) matchStage.isFeatured = true;
+    if (isRecommended) matchStage.isRecommended = true;
+
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+
+    // Add text score sorting (if search query is used)
+    if (search) {
+      pipeline.push({
+        $addFields: {
+          score: { $meta: 'textScore' }
+        }
+      });
+    }
+
+    // Sort by text score (if search query) or by createdAt
+    pipeline.push({
+      $sort: search ? { score: { $meta: 'textScore' }, createdAt: -1 } : { createdAt: -1 }
+    });
+
+    // Pagination: Skip and Limit
+    pipeline.push(
+      { $skip: skip },
+      { $limit: limitNum }
+    );
+
+    // Projection: Only fetch necessary fields
+    pipeline.push({
+      $project: {
+        name: 1,
+        description: 1,
+        foodImages: 1,
+        variants: 1,
+        category: 1,
+        priceAfterDiscount: 1,
+        isHotProduct: 1,
+        isBudgetBite: 1,
+        isFeatured: 1,
+        ingredients: 1,
+        isRecommended: 1,
+        isSpecialOffer: 1,
+        cookTime: 1,
+        itemType: 1,
+        variety: 1,
+        status: 1,
+        discount: 1,
+        score: search ? { $meta: 'textScore' } : undefined  // Include text score if searching
+      }
+    });
+
+    // Run aggregation pipeline
+    const foods = await Food.aggregate(pipeline);
+
+    // Fetch total count for pagination (without skip/limit)
+    const totalFoods = await Food.countDocuments(matchStage);
+
+    // Pagination metadata
+    const pagination = {
+      total: totalFoods,
+      page: pageNum,
+      totalPages: Math.ceil(totalFoods / limitNum),
+      limit: limitNum,
+    };
+
+    // If no results, return an empty response
+    if (!foods.length) {
+      return res.json({
+        success: true,
+        foods: [],
+        pagination,
+      });
+    }
+
+    // Send the response with foods and pagination data
+    return res.json({
+      success: true,
+      foods,
+      pagination,
+    });
+
+  } catch (error) {
+    console.error('Error fetching foods:', error);
+    res.status(500).json({ success: false, message: 'An error occurred while fetching foods.' });
+  }
+};
+
+export const getMenuFood = async (req, res) => {
+  try {
+    // ✅ 1) Get all active categories (O(1) indexed)
+    const categories = await Category.find({ isActive: true, isDeleted: false })
+      .sort({ displayOrder: 1 })
+      .lean(); // return plain JS, faster than mongoose docs
+
+    if (!categories.length) {
+      return res.status(404).json({ success: false, message: "No categories found" });
+    }
+
+    // ✅ 2) Get all active foods in one query (O(1) with index on category+status)
+    const foods = await Food.find({ status: "Active" })
+      .select("name description foodImages discount isHotProduct isBudgetBite isSpecialOffer isFeatured isRecommended itemType variety category variants")
+      .populate("category", "name")
+      .lean();
+
+    // ✅ 3) Pre-group foods by categoryId for O(1) lookup
+    const foodMap = {};
+    foods.forEach(food => {
+      const catId = food.category?._id?.toString();
+      if (!foodMap[catId]) foodMap[catId] = [];
+      foodMap[catId].push({
+        id: food._id,
+        name: food.name,
+        desc: food.description,
+        image: food.foodImages[0],
+        discount: food.discount,
+        isHotProduct: food.isHotProduct,
+        isBudgetBite: food.isBudgetBite,
+        isSpecialOffer: food.isSpecialOffer,
+        isFeatured: food.isFeatured,
+        isRecommended: food.isRecommended,
+        itemType: food.itemType,
+        variety: food.variety,
+        variants: food.variants.map(v => ({
+          name: v.name,
+          size: v.size,
+          price: v.price,
+          priceAfterDiscount: food.discount > 0
+            ? v.price - (v.price * food.discount / 100)
+            : v.price
+        }))
+      });
+    });
+
+    // ✅ 4) Merge categories + foods (menu ready for UI)
+    const menu = categories.map(cat => ({
+      id: cat._id,
+      title: cat.name,
+      description: cat.description,
+      image: cat.image?.[0],
+      isFeatured: cat.isFeatured,
+      isRecommended: cat.isRecommended,
+      products: foodMap[cat._id.toString()] || []
+    }));
+
+    res.json({ success: true, menu });
+  } catch (err) {
+    console.error("Error fetching menu:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 //client side 
 
