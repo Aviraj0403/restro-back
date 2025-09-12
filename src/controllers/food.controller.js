@@ -569,7 +569,7 @@ export const getUserFoods = async (req, res) => {
 export const getFood = async (req, res) => {
   try {
     const { foodId } = req.params;
-    console.log('Fetching food item with ID:', foodId);
+    // console.log('Fetching food item with ID:', foodId);
 
     // Validate if 'foodId' is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(foodId)) {
@@ -584,7 +584,7 @@ export const getFood = async (req, res) => {
       .populate('category', 'name')         // Populating the category field
       .populate('createdBy', 'userName')   // Populating the createdBy field to get userName
       .lean();                             // Use lean to return plain JavaScript objects
-    console.log('Fetched food item:', food);
+    // console.log('Fetched food item:', food);
     // If food item is not found
     if (!food) {
       return res.status(404).json({
@@ -612,6 +612,70 @@ export const getFood = async (req, res) => {
         createdBy: food.createdBy ? food.createdBy.userName : null, // Show the userName of the creator
         variants: foodWithDiscounts, // Overwrite variants with the discounted ones
       },
+    });
+  } catch (error) {
+    console.error('Error fetching food:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching the food item. Please try again later.',
+    });
+  }
+};
+
+
+
+export const getUserFood = async (req, res) => {
+  try {
+    const { foodId } = req.params;
+
+    // Validate if 'foodId' is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(foodId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid food item ID.',
+      });
+    }
+
+    // Fetch the food item from the database, including category and createdBy data
+    const food = await Food.findById(foodId)
+      .populate('category', 'name')         // Populating the category field
+      .populate('createdBy', 'userName')   // Populating the createdBy field to get userName
+      .lean();  // .lean() is used to get a plain JavaScript object instead of a mongoose document
+
+    // If food item is not found
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: 'Food item not found.',
+      });
+    }
+
+    // Ensure food.discount and food.variants are defined
+    if (!food.variants) {
+      return res.status(500).json({
+        success: false,
+        message: 'Food item does not have any variants.',
+      });
+    }
+
+    // Return the found food item with the price after discount applied to variants
+    const foodWithDiscount = {
+      ...food, // Spread the food object to include its properties
+      createdBy: food.createdBy ? food.createdBy.userName : null, // Show the userName of the creator
+      variants: food.variants.map((variant) => {
+        const priceAfterDiscount = food.discount > 0
+          ? variant.price - (variant.price * (food.discount / 100))
+          : variant.price;
+        return {
+          ...variant,
+          priceAfterDiscount,
+        };
+      }),
+    };
+
+    res.status(200).json({
+      success: true,
+      food: foodWithDiscount,
     });
   } catch (error) {
     console.error('Error fetching food:', error);
