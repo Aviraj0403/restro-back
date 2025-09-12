@@ -15,13 +15,16 @@ const offerSchema = new mongoose.Schema({
   endDate: { type: Date },
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   applyAutomatically: { type: Boolean, default: false },
+
+  // Usage tracking
   usageCount: { type: Number, default: 0 },
-  maxUsageCount: { type: Number, default: 40 }
+  maxUsageCount: { type: Number, default: 40 },
+
+  // ✅ Track which users already used this offer
+  usedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
-offerSchema.index({ code: 1 }, { unique: true, sparse: true });
+// offerSchema.index({ code: 1 });
 
-// Create and export the model
 const Offer = mongoose.model('Offer', offerSchema);
-
 export default Offer;

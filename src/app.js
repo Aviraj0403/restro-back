@@ -8,7 +8,8 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import foodRoutes from './routes/food.routes.js';
 import catgoryRoutes from './routes/catgory.routes.js';
-
+import cartRoutes from './routes/cart.routes.js';
+import offerRoutes from './routes/offer.routes.js';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';  // Import 'join' and 'dirname' from 'path'
@@ -60,6 +61,10 @@ app.use('/v1/api/auth', authRoutes);
 app.use('/v1/api/users', userRoutes);
 app.use('/v1/api/foods', foodRoutes);
 app.use('/v1/api/categories', catgoryRoutes);
+app.use('/v1/api/cart', cartRoutes);
+app.use('/v1/api/offers', offerRoutes);
+
+
 
 // app.use('/api', courseRoutes);
 // app.use('/api', examSubjectRoutes);
