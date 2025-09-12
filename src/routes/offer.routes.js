@@ -23,8 +23,8 @@ router.get('/offers/validate/:code',verifyToken, validatePromoCode);  // Validat
 router.post('/offers/apply-discount',verifyToken, applyDiscount);     // Apply promo code discount
 
 // Admin-only Routes (ideally with middleware)
-router.post('/offers', authAdmin ,createOffer);                      // Create offer
-router.put('/offers/:id', authAdmin, updateOffer);                   // Update offer
+router.post('/offers',verifyToken, createOffer);                      // Create offer
+router.put('/offers/:id', verifyToken,updateOffer);                   // Update offer
 router.delete('/offers/:id',authAdmin, deleteOffer);                // Delete offer
 
 export default router;
