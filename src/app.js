@@ -62,7 +62,7 @@ app.use('/v1/api/users', userRoutes);
 app.use('/v1/api/foods', foodRoutes);
 app.use('/v1/api/categories', catgoryRoutes);
 app.use('/v1/api/cart', cartRoutes);
-app.use('/v1/api/offers', offerRoutes);
+app.use('/v1/api', offerRoutes);
 
 
 
