@@ -62,6 +62,11 @@ export const addToCart = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid input' });
     }
 
+    // Ensure selectedVariant has a name
+    if (!selectedVariant.name) {
+      selectedVariant.name = selectedVariant.size;  // Default to size if name is missing
+    }
+
     // Check if food exists
     const food = await Food.findById(foodId);
     if (!food) {
@@ -100,6 +105,7 @@ export const addToCart = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update cart' });
   }
 };
+
 
 
 /**
@@ -149,12 +155,13 @@ export const updateCartItem = async (req, res) => {
  * @route DELETE /api/cart/item
  * @access Private
  */
+// Remove item
 export const removeCartItem = async (req, res) => {
   try {
-    const { foodId, size } = req.query;
+    const { foodId, size } = req.body; // ✅ switched from query to body (cleaner)
 
     if (!foodId || !size) {
-      return res.status(400).json({ success: false, message: 'Missing foodId or size' });
+      return res.status(400).json({ success: false, message: "Missing foodId or size" });
     }
 
     const cart = await Cart.findOneAndUpdate(
@@ -163,24 +170,24 @@ export const removeCartItem = async (req, res) => {
         $pull: {
           items: {
             food: foodId,
-            'selectedVariant.size': size,
+            "selectedVariant.size": size,
           },
         },
-        $set: { updatedAt: new Date() },
       },
       { new: true }
     );
 
     if (!cart) {
-      return res.status(404).json({ success: false, message: 'Cart not found' });
+      return res.status(404).json({ success: false, message: "Cart not found" });
     }
 
-    res.json({ success: true, message: 'Item removed from cart', cart });
+    res.json({ success: true, message: "Item removed from cart", cart });
   } catch (error) {
-    console.error('Remove Item Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to remove cart item' });
+    console.error("Remove Item Error:", error);
+    res.status(500).json({ success: false, message: "Failed to remove cart item" });
   }
 };
+
 
 
 /**
