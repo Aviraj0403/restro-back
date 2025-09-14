@@ -395,14 +395,14 @@ export const getMenuFood = async (req, res) => {
     }
 
     // ✅ 2) Get all active foods in one query (O(1) with index on category+status)
-    const foods = await Food.find({ status: "Active" })
+    const foods1 = await Food.find({ status: "Active" })
       .select("name description foodImages discount isHotProduct isBudgetBite isSpecialOffer isFeatured isRecommended itemType variety category variants")
       .populate("category", "name")
       .lean();
 
     // ✅ 3) Pre-group foods by categoryId for O(1) lookup
     const foodMap = {};
-    foods.forEach(food => {
+    foods1.forEach(food => {
       const catId = food.category?._id?.toString();
       if (!foodMap[catId]) foodMap[catId] = [];
       foodMap[catId].push({
@@ -430,7 +430,7 @@ export const getMenuFood = async (req, res) => {
     });
 
     // ✅ 4) Merge categories + foods (menu ready for UI)
-    const menu = categories.map(cat => ({
+    const foods = categories.map(cat => ({
       id: cat._id,
       title: cat.name,
       description: cat.description,
@@ -440,7 +440,7 @@ export const getMenuFood = async (req, res) => {
       products: foodMap[cat._id.toString()] || []
     }));
 
-    res.json({ success: true, menu });
+    res.json({ success: true, foods });
   } catch (err) {
     console.error("Error fetching menu:", err);
     res.status(500).json({ success: false, message: err.message });
