@@ -6,7 +6,8 @@
   "scripts": {
     "start": "nodemon ./index.js",
     "test": "echo \"No tests yet\"",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build": "echo 'No build step defined'"  
   },
   "keywords": [],
   "author": "",
