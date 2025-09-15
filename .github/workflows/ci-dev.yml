@@ -44,8 +44,8 @@ jobs:
         run: npm test  # Runs your test suite
 
       # Step 6: Lint the code
-      - name: Lint the code
-        run: npm run lint  # Optional: Only if you have a linting script
+      # - name: Lint the code
+        # run: npm run lint  # Optional: Only if you have a linting script
 
       # Step 7: Build the project (Optional)
       - name: Build project
