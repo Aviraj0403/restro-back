@@ -115,15 +115,21 @@ export const addToCart = async (req, res) => {
  */
 export const updateCartItem = async (req, res) => {
   try {
+    // Extract values from the request body
     const { foodId, size, quantity } = req.body;
+    console.log(req.body);
 
+
+    // Validate inputs
     if (!foodId || !size || typeof quantity !== 'number' || quantity < 0) {
       return res.status(400).json({ success: false, message: 'Invalid input' });
     }
 
+    // Find the cart based on the user ID
     let cart = await Cart.findOne({ user: req.user.id });
     if (!cart) return res.status(404).json({ success: false, message: 'Cart not found' });
 
+    // Find the item index that matches the foodId and size
     const index = cart.items.findIndex(
       item =>
         item.food.toString() === foodId &&
@@ -134,12 +140,14 @@ export const updateCartItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Cart item not found' });
     }
 
+    // Update the quantity or remove the item if quantity is zero
     if (quantity === 0) {
       cart.items.splice(index, 1);
     } else {
       cart.items[index].quantity = quantity;
     }
 
+    // Save the updated cart
     await cart.save();
 
     res.status(200).json({ success: true, message: 'Cart item updated', cart });
@@ -150,6 +158,7 @@ export const updateCartItem = async (req, res) => {
 };
 
 
+
 /**
  * @desc Remove item from cart
  * @route DELETE /api/cart/item
@@ -158,7 +167,7 @@ export const updateCartItem = async (req, res) => {
 // Remove item
 export const removeCartItem = async (req, res) => {
   try {
-    const { foodId, size } = req.body; // ✅ switched from query to body (cleaner)
+    const { foodId, size } = req.query;  // Use req.query instead of req.body
 
     if (!foodId || !size) {
       return res.status(400).json({ success: false, message: "Missing foodId or size" });
@@ -187,7 +196,6 @@ export const removeCartItem = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to remove cart item" });
   }
 };
-
 
 
 /**

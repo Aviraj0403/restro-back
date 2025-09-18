@@ -9,6 +9,7 @@ import {
     getTotalFood,
     getUserFood,
     updateFoodImages, getAdminFood ,getMenuFood
+    ,searchFoods, getSearchSuggestions
 } from '../controllers/food.controller.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 import upload from '../middlewares/upload.js'; 
@@ -25,6 +26,11 @@ router.get('/getUserFood/:foodId', getUserFood);
 router.get('/getAllFood', getAllFood);
 router.get('/getAdminFood', verifyToken, getAdminFood);
 router.get('/getMenuFood', getMenuFood);
+
+router.get('/searchFoods', searchFoods);
+
+// Route for getting search suggestions
+router.get('/searchSuggestions', getSearchSuggestions);
 
 router.get('/getFoodByCategory/category', getFoodByCategory);
 
