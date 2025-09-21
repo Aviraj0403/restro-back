@@ -449,6 +449,142 @@ export const getMenuFood = async (req, res) => {
 
 //client side 
 
+export const searchFoods = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 12,
+      search = '',
+      category,
+      isHotProduct,
+      isBudgetBite,
+      isFeatured,
+      isRecommended
+    } = req.query;
+
+    // Pagination validation
+    const pageNum = Math.max(1, Number(page));  
+    const limitNum = Math.min(100, Number(limit));  
+    const skip = (pageNum - 1) * limitNum;
+
+    let matchStage = {};
+
+    // Full-text search
+    if (search) {
+      matchStage.$text = { $search: search };  // Full-text search for name, description, and ingredients
+    }
+
+    // Additional filters
+    if (category) matchStage.category = mongoose.Types.ObjectId(category);
+    if (isHotProduct) matchStage.isHotProduct = true;
+    if (isBudgetBite) matchStage.isBudgetBite = true;
+    if (isFeatured) matchStage.isFeatured = true;
+    if (isRecommended) matchStage.isRecommended = true;
+
+    // Aggregation pipeline
+    let pipeline = [{ $match: matchStage }];
+
+    // Add text score sorting if search term exists
+    if (search) {
+      pipeline.push({
+        $addFields: {
+          score: { $meta: 'textScore' }
+        }
+      });
+    }
+
+    // Sorting: relevance first (if search term), else by createdAt
+    pipeline.push({
+      $sort: search ? { score: { $meta: 'textScore' }, createdAt: -1 } : { createdAt: -1 }
+    });
+
+    // Pagination
+    pipeline.push({ $skip: skip }, { $limit: limitNum });
+
+    // Projection: Fetch only necessary fields
+    pipeline.push({
+      $project: {
+        name: 1,
+        description: 1,
+        foodImages: 1,
+        variants: 1,
+        category: 1,
+        priceAfterDiscount: 1,
+        isHotProduct: 1,
+        isBudgetBite: 1,
+        isFeatured: 1,
+        isRecommended: 1,
+        discount: 1,
+        score: search ? { $meta: 'textScore' } : undefined
+      }
+    });
+
+    // Execute the aggregation
+    const foods = await Food.aggregate(pipeline);
+
+    // Get the total count for pagination (without skip/limit)
+    const totalFoods = await Food.countDocuments(matchStage);
+
+    // Pagination metadata
+    const pagination = {
+      total: totalFoods,
+      page: pageNum,
+      totalPages: Math.ceil(totalFoods / limitNum),
+      limit: limitNum,
+    };
+
+    // Return response
+    return res.json({ success: true, foods, pagination });
+
+  } catch (error) {
+    console.error('Error fetching foods:', error);
+    res.status(500).json({ success: false, message: 'An error occurred while fetching foods.' });
+  }
+};
+
+
+export const getSearchSuggestions = async (req, res) => {
+  try {
+    const { search = '', limit = 5 } = req.query;  // Default limit to 5 suggestions
+    
+    // If no search term, return empty suggestions
+    if (!search) return res.json({ success: true, suggestions: [] });
+
+    // Aggregation pipeline for getting suggestions
+    const pipeline = [
+      {
+        $match: {
+          $text: { $search: search }  // Match based on full-text search
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          foodImages: 1,
+          score: { $meta: 'textScore' }  // Rank by relevance (text score)
+        }
+      },
+      {
+        $sort: { score: { $meta: 'textScore' } }  // Sort by text score (relevance)
+      },
+      {
+        $limit: Number(limit)  // Limit to a fixed number of suggestions
+      }
+    ];
+
+    // Execute the aggregation pipeline
+    const suggestions = await Food.aggregate(pipeline);
+
+    return res.json({ success: true, suggestions });
+
+  } catch (error) {
+    console.error('Error fetching search suggestions:', error);
+    return res.status(500).json({ success: false, message: 'Error fetching search suggestions' });
+  }
+};
+
+
 export const getUserFoods = async (req, res) => {
   try {
     const { 
