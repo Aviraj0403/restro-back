@@ -1,84 +1,74 @@
- 
 import express from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import dotenv from 'dotenv'; // For environment variables
 
 import { logSessionActivity } from './middlewares/logSessionActivity.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import foodRoutes from './routes/food.routes.js';
-import catgoryRoutes from './routes/catgory.routes.js';
+import categoryRoutes from './routes/catgory.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import offerRoutes from './routes/offer.routes.js';
-import cors from 'cors';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';  // Import 'join' and 'dirname' from 'path'
+
+dotenv.config(); // Load environment variables
 
 // Get the current directory name in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Create Express app
 const app = express();
-// const app1 =createrServer(Http)
+
+// Allowed origins for CORS (replace with your frontend origins)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://restro-admin-v1.vercel.app',
-  'https://restaurant-tan-phi.vercel.app'
-
+  'https://restaurant-tan-phi.vercel.app',
 ];
 
+// CORS middleware
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Allow requests without origin (mobile apps, curl, etc.)
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // Allow requests from mobile apps, curl, etc.
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
-    } else {
-      // return callback(new Error('Not allowed by CORS'));
-      return callback(null, true); // Allow all origins for now
     }
+    return callback(null, true); // Allow all origins for now (you may change this)
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true, // Send cookies and authorization headers
+  credentials: true, // Allow cookies and authorization headers
 }));
 
-// Middleware for JSON body parsing and cookies
+// Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
-
 app.use(cookieParser());
 
-// Session activity logging middleware
-app.use(logSessionActivity);
+// Static files (e.g., for serving `robots.txt`)
 app.use(express.static(join(__dirname, 'public')));
-
 app.get('/robots.txt', (req, res) => {
-    res.sendFile(join(__dirname, 'public', 'robots.txt'));
-  });
+  res.sendFile(join(__dirname, 'public', 'robots.txt'));
+});
 
-// API Routes
+// API routes
 app.use('/v1/api/auth', authRoutes);
 app.use('/v1/api/users', userRoutes);
 app.use('/v1/api/foods', foodRoutes);
-app.use('/v1/api/categories', catgoryRoutes);
+app.use('/v1/api/categories', categoryRoutes);
 app.use('/v1/api/cart', cartRoutes);
 app.use('/v1/api', offerRoutes);
 
-
-
-// app.use('/api', courseRoutes);
-// app.use('/api', examSubjectRoutes);
-// app.use('/api', subjectRoutes);
-// app.use('/api', marksheetRoutes);
-// app.use('/api', ticketRoutes);
-
-
-// Root route (Health check or default response)
+// Health check route
 app.get('/', (req, res) => {
-  res.send('Hello Avi Raj ! Production is running smoothly! ');
+  res.send('Hello Avi Raj! Production is running smoothly!');
 });
 
-// Centralized error handling (for unhandled errors)
+// Centralized error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong!');
