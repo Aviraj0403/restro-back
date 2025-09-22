@@ -200,10 +200,10 @@ export const signInWithCredentials = async (req, res) => {
     };
 
     req.user = userData;
-    console.log("userDataLoginPAge", userData);
+    // console.log("userDataLoginPAge", userData);
     const token = await generateToken(res, userData);
     // const token = await generateToken(res, userData);
-     console.log("token", token);
+    //  console.log("token", token);
     // Send response with user data and token
     res.status(200).json({
       userData,

@@ -1,17 +1,23 @@
 import users from "../models/user.model.js";
 import mongoose from "mongoose";
 import { verifyToken } from '../middlewares/verifyToken.js'; 
+
+// Add Address
 export const addAddress = async (req, res) => {
   try {
     const user = await users.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    if (!req.body.phoneNumber) {
+      return res.status(400).json({ message: "Phone number is required for delivery" });
+    }
+
     const newAddress = {
       id: new mongoose.Types.ObjectId(),
       ...req.body,
+      location: req.body.location || null, // Optional location field
     };
 
-    // If user has no addresses, make this one default
     if (user.addresses.length === 0) {
       newAddress.isDefault = true;
     }
@@ -24,6 +30,8 @@ export const addAddress = async (req, res) => {
     res.status(500).json({ message: "Failed to add address", error: err.message });
   }
 };
+
+// Update Address
 export const updateAddress = async (req, res) => {
   try {
     const { id } = req.params;
@@ -33,9 +41,11 @@ export const updateAddress = async (req, res) => {
     const addressIndex = user.addresses.findIndex((addr) => addr.id.toString() === id);
     if (addressIndex === -1) return res.status(404).json({ message: "Address not found" });
 
+    // Handle location update or nullifying the location
     user.addresses[addressIndex] = {
       ...user.addresses[addressIndex],
       ...req.body,
+      location: req.body.location || user.addresses[addressIndex].location, // Preserve location if not updated
     };
 
     await user.save();
@@ -44,6 +54,8 @@ export const updateAddress = async (req, res) => {
     res.status(500).json({ message: "Failed to update address", error: err.message });
   }
 };
+
+// Delete Address
 export const deleteAddress = async (req, res) => {
   try {
     const { id } = req.params;
@@ -52,7 +64,7 @@ export const deleteAddress = async (req, res) => {
 
     user.addresses = user.addresses.filter((addr) => addr.id.toString() !== id);
 
-    // If default was deleted, make first one default
+    // If default was deleted, make the first one default (if any)
     if (!user.addresses.some(addr => addr.isDefault) && user.addresses.length > 0) {
       user.addresses[0].isDefault = true;
     }
@@ -63,6 +75,8 @@ export const deleteAddress = async (req, res) => {
     res.status(500).json({ message: "Failed to delete address", error: err.message });
   }
 };
+
+// Set Default Address
 export const setDefaultAddress = async (req, res) => {
   try {
     const { id } = req.params;
@@ -87,6 +101,8 @@ export const setDefaultAddress = async (req, res) => {
     res.status(500).json({ message: "Failed to set default", error: err.message });
   }
 };
+
+// Get User Addresses
 export const getUserAddresses = async (req, res) => {
   try {
     const user = await users.findById(req.user.id).select("addresses");
@@ -98,6 +114,7 @@ export const getUserAddresses = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 export const getTotalUsers = async (req, res) => {
   try {
     const total = await users.countDocuments();
