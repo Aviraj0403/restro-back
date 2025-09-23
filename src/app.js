@@ -5,6 +5,8 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv'; // For environment variables
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import { logSessionActivity } from './middlewares/logSessionActivity.js';
 import authRoutes from './routes/auth.routes.js';
@@ -13,7 +15,7 @@ import foodRoutes from './routes/food.routes.js';
 import categoryRoutes from './routes/catgory.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import offerRoutes from './routes/offer.routes.js';
-
+import orderRoutes from './routes/order.routes.js';
 dotenv.config(); // Load environment variables
 
 // Get the current directory name in ES Modules
@@ -49,6 +51,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
+app.use(helmet());
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+
+
 // Static files (e.g., for serving `robots.txt`)
 app.use(express.static(join(__dirname, 'public')));
 app.get('/robots.txt', (req, res) => {
@@ -62,6 +68,7 @@ app.use('/v1/api/foods', foodRoutes);
 app.use('/v1/api/categories', categoryRoutes);
 app.use('/v1/api/cart', cartRoutes);
 app.use('/v1/api', offerRoutes);
+app.use('/v1/api/orders', orderRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

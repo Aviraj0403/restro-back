@@ -1,45 +1,59 @@
 import { Server as socketIo } from 'socket.io';
-import Order from './models/order.model.js'; // Import Order model
+import Order from './models/order.model.js';
 
 let io;
 
 export const setupSocketIO = (server) => {
-  io = new socketIo(server);
+  io = new socketIo(server, {
+    cors: {
+      origin: [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'https://restro-admin-v1.vercel.app',
+        'https://restaurant-tan-phi.vercel.app',
+      ],
+      methods: ['GET', 'POST'],
+      credentials: true,
+    }
+  });
+
+  // Make `io` accessible inside Express routes
+  server.setMaxListeners(20);
+  server.on("request", (req, res) => req.app?.set("io", io));
 
   io.on('connection', (socket) => {
-    console.log('A user connected, SOCKET ID:', socket.id);
+    console.log('✅ Socket connected:', socket.id);
 
-    // Listen for the 'newOrder' event from the client
-    socket.on('newOrder', async (data) => {
+    socket.on('newOrder', async (data, callback) => {
       try {
-        // Create a new order from the data
         const newOrder = new Order({
-          user: data.userId,  // User who placed the order
-          items: data.items,  // List of ordered items
+          user: data.userId,
+          items: data.items,
           shippingAddress: data.shippingAddress,
           paymentMethod: data.paymentMethod,
-          paymentStatus: 'Pending',  // Default as Pending
-          orderStatus: 'Pending',   // Default as Pending
+          paymentStatus: 'Pending',
+          orderStatus: 'Pending',
           totalAmount: data.totalAmount,
-          discountAmount: data.discountAmount,
-          discountCode: data.discountCode,
+          discountAmount: data.discountAmount || 0,
+          discountCode: data.discountCode || null,
           placedAt: new Date(),
         });
 
-        // Save the new order to the database
         await newOrder.save();
-        console.log('New order saved:', newOrder);
 
-        // Emit the new order event to all connected clients
+        // Broadcast to admins/kitchen dashboard
         io.emit('newOrder', newOrder);
-      } catch (error) {
-        console.error('Error creating order:', error);
+
+        // Acknowledge to the client
+        callback({ success: true, order: newOrder });
+      } catch (err) {
+        console.error("❌ Error saving order:", err);
+        callback({ success: false, error: err.message });
       }
     });
 
-    // Handle client disconnection
     socket.on('disconnect', () => {
-      console.log('A user disconnected');
+      console.log('❌ Socket disconnected:', socket.id);
     });
   });
 };
