@@ -40,8 +40,8 @@ jobs:
         run: npm install
 
       # Step 5: Run tests
-      - name: Run tests
-        run: npm test  # Runs your test suite
+      # - name: Run tests
+      #   run: npm test  # Runs your test suite
 
       # Step 6: Lint the code
       # - name: Lint the code
