@@ -22,7 +22,7 @@ export const setupSocketIO = (server) => {
   server.on("request", (req, res) => req.app?.set("io", io));
 
   io.on('connection', (socket) => {
-    console.log('✅ Socket connected:', socket.id);
+    console.log('Socket connected:', socket.id);
 
     socket.on('newOrder', async (data, callback) => {
       try {
@@ -47,13 +47,13 @@ export const setupSocketIO = (server) => {
         // Acknowledge to the client
         callback({ success: true, order: newOrder });
       } catch (err) {
-        console.error("❌ Error saving order:", err);
+        console.error("Error saving order:", err);
         callback({ success: false, error: err.message });
       }
     });
 
     socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected:', socket.id);
+      console.log('Socket disconnected:', socket.id);
     });
   });
 };
