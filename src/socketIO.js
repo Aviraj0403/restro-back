@@ -52,9 +52,9 @@ export const setupSocketIO = (server) => {
     const rawCookies = socket.handshake.headers?.cookie || "";
     const parsedCookies = cookie.parse(rawCookies);
     const token = parsedCookies.jwt;
-     console.log('🔑 Extracted JWT:', token)
+    //  console.log('🔑 Extracted JWT:', token)
     if (!token) {
-      console.log('❌ JWT token missing in cookie');
+      // console.log('❌ JWT token missing in cookie');
       return socket.disconnect();
     }
 
@@ -63,13 +63,13 @@ export const setupSocketIO = (server) => {
       const decoded = jwt.verify(token, secret);
 
       if (!decoded?.data) {
-        console.log('❌ JWT payload invalid');
+        // console.log('❌ JWT payload invalid');
         return socket.disconnect();
       }
 
       // ✅ Attach authenticated user data to socket
       socket.user = decoded.data;
-      console.log('🔓 Authenticated socket user:', socket.user);
+      // console.log('🔓 Authenticated socket user:', socket.user);
 
     } catch (err) {
       console.error('❌ JWT verification failed:', err.message);
@@ -89,13 +89,13 @@ export const setupSocketIO = (server) => {
         const { items, shippingAddress, paymentMethod, totalAmount, discountCode = null, discountAmount = 0 } = data;
         const userId = socket.user.id;
 
-        console.log('📦 Incoming Order:', {
-          userId,
-          items,
-          shippingAddress,
-          paymentMethod,
-          totalAmount,
-        });
+        // console.log('📦 Incoming Order:', {
+        //   userId,
+        //   items,
+        //   shippingAddress,
+        //   paymentMethod,
+        //   totalAmount,
+        // });
 
         // 🔍 Basic validations
         if (!Array.isArray(items) || items.length === 0) {
@@ -124,8 +124,8 @@ export const setupSocketIO = (server) => {
           discountCode,
           placedAt: new Date(),
         });
-
-        await newOrder.save();
+        // console.log("📝 Saving new order:", newOrder);
+        // await newOrder.save();
 
         // 📣 Broadcast new order to admins/kitchen
         io.emit('newOrder', newOrder);
@@ -133,7 +133,7 @@ export const setupSocketIO = (server) => {
         // ✅ Acknowledge to client
         callback?.({ success: true, order: newOrder });
       } catch (err) {
-        console.error('❌ Order save failed:', err.message);
+        // console.error('❌ Order save failed:', err.message);
         callback?.({ success: false, error: 'Something went wrong' });
       }
     });

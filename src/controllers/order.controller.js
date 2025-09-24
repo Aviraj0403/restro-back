@@ -25,7 +25,7 @@ export const createOrder = async (req, res) => {
       placedAt: new Date(),
     });
 
-    console.log("📝 Saving new order:", newOrder);
+    // console.log("📝 Saving new order:", newOrder);
     await newOrder.save();
 
     // Respond to customer
