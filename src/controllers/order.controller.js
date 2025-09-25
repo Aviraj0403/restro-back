@@ -1,49 +1,62 @@
 import Order from '../models/order.model.js'; 
+
 export const createOrder = async (req, res) => {
   try {
-    const { userId, items, shippingAddress, paymentMethod, discountCode, totalAmount } = req.body;
+    const {
+      items,
+      shippingAddress,
+      paymentMethod,
+      discountCode = null,
+      totalAmount,
+    } = req.body;
 
-    if (!userId || !items || !shippingAddress || !paymentMethod || !totalAmount) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    const userId = req.user.id;
+
+    // Basic validations
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "Order items are required" });
     }
 
-    if (items.length === 0) {
-      return res.status(400).json({ message: 'Order must have at least one item' });
+    if (!shippingAddress) {
+      return res.status(400).json({ message: "Shipping address is required" });
     }
 
-    // Create new order
+    if (!paymentMethod || !["COD", "ONLINE"].includes(paymentMethod)) {
+      return res.status(400).json({ message: "Invalid payment method" });
+    }
+
+    if (!totalAmount || typeof totalAmount !== "number") {
+      return res.status(400).json({ message: "Invalid total amount" });
+    }
+
+    // Create and save the order
     const newOrder = new Order({
       user: userId,
       items,
       shippingAddress,
       paymentMethod,
-      paymentStatus: 'Pending',
-      orderStatus: 'Pending',
+      paymentStatus: paymentMethod === "COD" ? "Pending" : "Paid",
+      orderStatus: "Pending",
       totalAmount,
-      discountCode: discountCode || null,
-      isOfferApplied: !!discountCode,
+      discountCode,
       placedAt: new Date(),
     });
 
-    // console.log("📝 Saving new order:", newOrder);
-    await newOrder.save();
+// After saving the order, you can assign it to a variable so you send the fully saved doc with _id
+const savedOrder = await newOrder.save();
 
-    // Respond to customer
-    res.status(201).json({
-      message: '✅ Order placed successfully',
-      order: newOrder,
-    });
+const io = req.app.get("io");
+if (io) {
+  io.emit("newOrder", savedOrder); // Send the saved order with _id and timestamps if any
+}
 
-    // Emit to sockets (admins, restaurant dashboards, etc.)
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('newOrder', newOrder);
-      console.log("📡 Socket emitted new order:", newOrder._id);
-    }
+return res.status(201).json({ message: "Order placed", order: savedOrder });
 
-  } catch (error) {
-    console.error('❌ Error creating order:', error);
-    res.status(500).json({ message: 'Failed to place order', error: error.message });
+
+  } catch (err) {
+    console.error("❌ Order creation error:", err.message);
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
 
