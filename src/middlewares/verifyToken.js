@@ -54,7 +54,7 @@ const secret = process.env.JWTSECRET;
 
 // Export the verifyToken function using the 'export const' pattern
 export const verifyToken = (req, res, next) => {
-  console.log("Token work");
+  // console.log("Token work");
 
   const token = req.cookies.jwt;
 

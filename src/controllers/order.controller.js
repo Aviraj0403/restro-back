@@ -47,6 +47,7 @@ const savedOrder = await newOrder.save();
 
 const io = req.app.get("io");
 if (io) {
+  console.log("📡 Emitting newOrder event via Socket.IO", savedOrder._id );
   io.emit("newOrder", savedOrder); // Send the saved order with _id and timestamps if any
 }
 

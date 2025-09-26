@@ -1,21 +1,20 @@
-// server.js or index.js
-
 import dotenv from "dotenv";
 import http from "http";
-import connectDB from "./src/config/dbConfig.js";
 import app from "./src/app.js";
-import { setupSocketIO } from "./src/socketIO.js";
+import connectDB from "./src/config/dbConfig.js";
+import { setupSocketIO } from "./src/socketIO.js";  // Socket IO setup module
 
 dotenv.config();
 
 const port = process.env.PORT || 5005;
 
+// Function to start server
 const startServer = () => {
   const server = http.createServer(app);
 
-  // 👇 Corrected: pass server, then attach io to app here
+  // Set up Socket.io
   const io = setupSocketIO(server);
-  app.set("io", io); // Attach io to app for access in controllers
+  app.set("io", io);  // Store the io instance in app
 
   server.listen(port, () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
@@ -38,6 +37,7 @@ const startServer = () => {
   });
 };
 
+// MongoDB connection with retry
 const connectWithRetry = () => {
   connectDB()
     .then(() => {
