@@ -7,6 +7,7 @@ const orderItemSchema = new mongoose.Schema({
     ref: 'Food',
     required: true,
   },
+  // name: { type: String, required: true },
   selectedVariant: {
     name: { type: String },
     price: { type: Number },
