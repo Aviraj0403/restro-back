@@ -26,7 +26,7 @@ router.get("/getAllOrders", verifyToken, getAllOrders); // add admin middleware 
 router.put("/updateOrderStatus/:id", verifyToken, updateOrderStatus);
 router.delete("/deleteOrder/:id", verifyToken, deleteOrder);
 
-router.get("/reports/today", verifyToken, getTodayOrders);
+router.get("/reports/today", getTodayOrders);
 router.get("/reports/total", verifyToken, getTotalOrders);
 
 router.get("/stats/weekly", verifyToken, getWeeklyOrderStats);
