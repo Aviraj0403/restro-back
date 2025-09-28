@@ -1,19 +1,19 @@
 import express from "express";
 import {
-    addAddress,
-    updateAddress,
-    deleteAddress,
-    setDefaultAddress,
-    getUserAddresses,
-    getTotalUsers,
-    getAllCustomers,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress,
+  getUserAddresses,
+  getTotalUsers,
+  getAllCustomers,
   getAllAdmins,
   getAllDeliveryBoys,
   getAllUsers,
   getUserDetails,
 
-       } 
-from "../controllers/user.controller.js";
+}
+  from "../controllers/user.controller.js";
 import { verifyToken } from '../middlewares/verifyToken.js';
 
 const router = express.Router();
@@ -43,6 +43,6 @@ router.get('/deliveryBoys', getAllDeliveryBoys);
 
 // Route to get all regular users
 router.get('/regular', getAllUsers);
-router.get('/user/:userId', verifyToken,getUserDetails);
+router.get('/user/:userId', verifyToken, getUserDetails);
 
 export default router;

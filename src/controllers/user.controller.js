@@ -12,12 +12,26 @@ export const addAddress = async (req, res) => {
       return res.status(400).json({ message: "Phone number is required for delivery" });
     }
 
+    // Check if location is provided
+    let location = req.body.location || null;
+
+    // If location is provided, validate it
+    if (location && typeof location !== 'object') {
+      return res.status(400).json({ message: "Location must be an object if provided." });
+    }
+
+    // If location is provided, ensure it has the correct properties (type and coordinates)
+    if (location && (!location.type || !location.coordinates || !Array.isArray(location.coordinates) || location.coordinates.length !== 2)) {
+      return res.status(400).json({ message: "Invalid location format. It should contain 'type' and 'coordinates' (longitude, latitude)." });
+    }
+
     const newAddress = {
       id: new mongoose.Types.ObjectId(),
       ...req.body,
-      location: req.body.location || null, // Optional location field
+      location: location, // Use provided location or null
     };
 
+    // Set the first address as the default address if no default address is found
     if (user.addresses.length === 0) {
       newAddress.isDefault = true;
     }
@@ -30,6 +44,8 @@ export const addAddress = async (req, res) => {
     res.status(500).json({ message: "Failed to add address", error: err.message });
   }
 };
+
+
 
 // Update Address
 export const updateAddress = async (req, res) => {

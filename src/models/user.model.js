@@ -62,6 +62,8 @@ const userSchema = new mongoose.Schema({
         default: () => new mongoose.Types.ObjectId(),
       },
       label: { type: String, trim: true, default: 'Home' },
+      name : { type: String },
+      email : { type: String },
       phoneNumber: { type: String, trim: true },
       street: { type: String, trim: true },
       city: { type: String, trim: true },

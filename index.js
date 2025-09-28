@@ -14,7 +14,7 @@ const startServer = () => {
 
   // Set up Socket.io
   const io = setupSocketIO(server);
-  app.set("io", io);  // Store the io instance in app
+  app.set("io", io);  
 
   server.listen(port, () => {
     console.log(`🚀 Server running at http://localhost:${port}`);

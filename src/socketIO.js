@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import cookie from "cookie";  // Manually import the 'cookie' library for parsing
+import cookie from "cookie"; 
 
 const secret = process.env.JWTSECRET;
 

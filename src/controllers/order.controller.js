@@ -49,16 +49,16 @@ export const createOrder = async (req, res) => {
         isOfferApplied = true;
       }
     }
- const populatedItems = await Promise.all(items.map(async (item) => {
-  const food = await Food.findById(item.food).select('name');  // Fetch food name using the food ID
-  return {
-    ...item,
-    selectedVariant: {
-      ...item.selectedVariant,
-      name: food ? food.name : 'Unknown Food Item',  // Add food name to selectedVariant
-    },
-  };
-}));
+    const populatedItems = await Promise.all(items.map(async (item) => {
+      const food = await Food.findById(item.food).select('name');  // Fetch food name using the food ID
+      return {
+        ...item,
+        selectedVariant: {
+          ...item.selectedVariant,
+          name: food ? food.name : 'Unknown Food Item',  // Add food name to selectedVariant
+        },
+      };
+    }));
 
     // console.log("Populated Items:", populatedItems);
     // 🔹 6. Create new order

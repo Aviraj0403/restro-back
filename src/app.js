@@ -32,6 +32,8 @@ const allowedOrigins = [
   'http://localhost:5174',
   'https://restro-admin-v1.vercel.app',
   'https://restaurant-tan-phi.vercel.app',
+  'https://nominatim.openstreetmap.org',
+  'https://nominatim.openstreetmap.org/reverse?lat=28.5802496&lon=77.3718016&format=json'
 ];
 
 app.use(cors({
