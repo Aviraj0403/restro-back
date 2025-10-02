@@ -1,51 +1,74 @@
 import users from "../models/user.model.js";
 import mongoose from "mongoose";
-import { verifyToken } from '../middlewares/verifyToken.js'; 
+import { verifyToken } from '../middlewares/verifyToken.js';
 
-// Add Address
+// Helper function to validate location
+const validateLocation = (location) => {
+  if (!location || typeof location !== 'object' || location.type !== 'Point' || !Array.isArray(location.coordinates) || location.coordinates.length !== 2) {
+    return false;
+  }
+  const [lng, lat] = location.coordinates;
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+};
+
+// Add address function
 export const addAddress = async (req, res) => {
   try {
     const user = await users.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!req.body.phoneNumber) {
-      return res.status(400).json({ message: "Phone number is required for delivery" });
+      return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Check if location is provided
-    let location = req.body.location || null;
-
-    // If location is provided, validate it
-    if (location && typeof location !== 'object') {
-      return res.status(400).json({ message: "Location must be an object if provided." });
-    }
-
-    // If location is provided, ensure it has the correct properties (type and coordinates)
-    if (location && (!location.type || !location.coordinates || !Array.isArray(location.coordinates) || location.coordinates.length !== 2)) {
-      return res.status(400).json({ message: "Invalid location format. It should contain 'type' and 'coordinates' (longitude, latitude)." });
+    const location = req.body.location || { type: "Point", coordinates: [0, 0] };
+    if (!validateLocation(location)) {
+      return res.status(400).json({ message: "Invalid location: must be { type: 'Point', coordinates: [longitude, latitude] }" });
     }
 
     const newAddress = {
       id: new mongoose.Types.ObjectId(),
-      ...req.body,
-      location: location, // Use provided location or null
+      name: req.body.name || user.userName,
+      phoneNumber: req.body.phoneNumber,
+      street: req.body.street,
+      city: req.body.city,
+      state: req.body.state,
+      country: req.body.country || 'India',
+      postalCode: req.body.postalCode,
+      label: req.body.label || 'Home',
+      location,
+      isDefault: user.addresses.length === 0, // Set as default if first address
     };
 
-    // Set the first address as the default address if no default address is found
-    if (user.addresses.length === 0) {
-      newAddress.isDefault = true;
+    // Validate required fields
+    if (!newAddress.street || !newAddress.city || !newAddress.state || !newAddress.postalCode) {
+      return res.status(400).json({ message: "Street, city, state, and postal code are required" });
     }
 
     user.addresses.push(newAddress);
     await user.save();
 
-    res.status(201).json({ message: "Address added", addresses: user.addresses });
+    res.status(201).json({
+      message: "Address added successfully",
+      addresses: user.addresses.map(addr => ({
+        id: addr.id,
+        label: addr.label,
+        name: addr.name,
+        phoneNumber: addr.phoneNumber,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        isDefault: addr.isDefault,
+        location: addr.location,
+      })),
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Failed to add address", error: err.message });
   }
 };
-
-
 
 // Update Address
 export const updateAddress = async (req, res) => {
@@ -57,15 +80,46 @@ export const updateAddress = async (req, res) => {
     const addressIndex = user.addresses.findIndex((addr) => addr.id.toString() === id);
     if (addressIndex === -1) return res.status(404).json({ message: "Address not found" });
 
-    // Handle location update or nullifying the location
+    const location = req.body.location || user.addresses[addressIndex].location;
+    if (!validateLocation(location)) {
+      return res.status(400).json({ message: "Invalid location: must be { type: 'Point', coordinates: [longitude, latitude] }" });
+    }
+
     user.addresses[addressIndex] = {
       ...user.addresses[addressIndex],
-      ...req.body,
-      location: req.body.location || user.addresses[addressIndex].location, // Preserve location if not updated
+      name: req.body.name || user.addresses[addressIndex].name,
+      phoneNumber: req.body.phoneNumber || user.addresses[addressIndex].phoneNumber,
+      street: req.body.street || user.addresses[addressIndex].street,
+      city: req.body.city || user.addresses[addressIndex].city,
+      state: req.body.state || user.addresses[addressIndex].state,
+      postalCode: req.body.postalCode || user.addresses[addressIndex].postalCode,
+      country: req.body.country || user.addresses[addressIndex].country,
+      label: req.body.label || user.addresses[addressIndex].label,
+      location,
     };
 
+    // Validate required fields
+    if (!user.addresses[addressIndex].street || !user.addresses[addressIndex].city || !user.addresses[addressIndex].state || !user.addresses[addressIndex].postalCode) {
+      return res.status(400).json({ message: "Street, city, state, and postal code are required" });
+    }
+
     await user.save();
-    res.status(200).json({ message: "Address updated", addresses: user.addresses });
+    res.status(200).json({
+      message: "Address updated",
+      addresses: user.addresses.map(addr => ({
+        id: addr.id,
+        label: addr.label,
+        name: addr.name,
+        phoneNumber: addr.phoneNumber,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        isDefault: addr.isDefault,
+        location: addr.location,
+      })),
+    });
   } catch (err) {
     res.status(500).json({ message: "Failed to update address", error: err.message });
   }
@@ -78,15 +132,32 @@ export const deleteAddress = async (req, res) => {
     const user = await users.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.addresses = user.addresses.filter((addr) => addr.id.toString() !== id);
+    const addressIndex = user.addresses.findIndex((addr) => addr.id.toString() === id);
+    if (addressIndex === -1) return res.status(404).json({ message: "Address not found" });
 
-    // If default was deleted, make the first one default (if any)
+    user.addresses.splice(addressIndex, 1);
+
     if (!user.addresses.some(addr => addr.isDefault) && user.addresses.length > 0) {
       user.addresses[0].isDefault = true;
     }
 
     await user.save();
-    res.status(200).json({ message: "Address deleted", addresses: user.addresses });
+    res.status(200).json({
+      message: "Address deleted",
+      addresses: user.addresses.map(addr => ({
+        id: addr.id,
+        label: addr.label,
+        name: addr.name,
+        phoneNumber: addr.phoneNumber,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        isDefault: addr.isDefault,
+        location: addr.location,
+      })),
+    });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete address", error: err.message });
   }
@@ -99,22 +170,32 @@ export const setDefaultAddress = async (req, res) => {
     const user = await users.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    let found = false;
+    const address = user.addresses.find((addr) => addr.id.toString() === id);
+    if (!address) return res.status(404).json({ message: "Address not found" });
+
     user.addresses.forEach((addr) => {
-      if (addr.id.toString() === id) {
-        addr.isDefault = true;
-        found = true;
-      } else {
-        addr.isDefault = false;
-      }
+      addr.isDefault = addr.id.toString() === id;
     });
 
-    if (!found) return res.status(404).json({ message: "Address not found" });
-
     await user.save();
-    res.status(200).json({ message: "Default address set", addresses: user.addresses });
+    res.status(200).json({
+      message: "Default address set",
+      addresses: user.addresses.map(addr => ({
+        id: addr.id,
+        label: addr.label,
+        name: addr.name,
+        phoneNumber: addr.phoneNumber,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        isDefault: addr.isDefault,
+        location: addr.location,
+      })),
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to set default", error: err.message });
+    res.status(500).json({ message: "Failed to set default address", error: err.message });
   }
 };
 
@@ -124,10 +205,25 @@ export const getUserAddresses = async (req, res) => {
     const user = await users.findById(req.user.id).select("addresses");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(user.addresses);
+    res.status(200).json({
+      message: "Addresses retrieved successfully",
+      data: user.addresses.map(addr => ({
+        id: addr.id,
+        label: addr.label,
+        name: addr.name,
+        phoneNumber: addr.phoneNumber,
+        street: addr.street,
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.postalCode,
+        country: addr.country,
+        isDefault: addr.isDefault,
+        location: addr.location,
+      })),
+    });
   } catch (error) {
     console.error("Failed to get addresses:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

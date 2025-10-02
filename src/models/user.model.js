@@ -9,6 +9,7 @@ const locationSchema = new mongoose.Schema({
   coordinates: {
     type: [Number], // [longitude, latitude]
     required: false,
+    default: [0, 0],
   },
   formattedAddress: { type: String },
   placeId: { type: String }
@@ -61,6 +62,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         default: () => new mongoose.Types.ObjectId(),
       },
+      location: locationSchema,
       label: { type: String, trim: true, default: 'Home' },
       name : { type: String },
       email : { type: String },
@@ -70,8 +72,7 @@ const userSchema = new mongoose.Schema({
       state: { type: String, trim: true },
       postalCode: { type: String, trim: true },
       country: { type: String, trim: true, default: 'India' },
-      isDefault: { type: Boolean, default: false },
-      location: locationSchema, // ✅ Google Maps location
+      isDefault: { type: Boolean, default: false }, // ✅ Google Maps location
     },
   ],
 
