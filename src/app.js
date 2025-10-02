@@ -18,7 +18,7 @@ import categoryRoutes from './routes/catgory.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import offerRoutes from './routes/offer.routes.js';
 import orderRoutes from './routes/order.routes.js';
-
+import mapRoutes from './routes/map.routes.js'
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -67,6 +67,7 @@ app.use('/v1/api/categories', categoryRoutes);
 app.use('/v1/api/cart', cartRoutes);
 app.use('/v1/api', offerRoutes);
 app.use('/v1/api/orders', orderRoutes);
+app.use('/v1/api', mapRoutes)
 
 // Health check
 app.get('/', (req, res) => {
