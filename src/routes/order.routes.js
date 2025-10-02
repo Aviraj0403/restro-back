@@ -18,7 +18,7 @@ const router = express.Router();
 
 router.post('/createOrder', verifyToken, createOrder);
 router.get("/myorders", verifyToken, getUserOrders);
-router.get("/ getOrderById/:id", verifyToken, getOrderById);
+router.get("/getOrderById/:id", verifyToken, getOrderById);
 router.put("/cancelOrder/:id", verifyToken, cancelOrder);
 
 // Admin routes
