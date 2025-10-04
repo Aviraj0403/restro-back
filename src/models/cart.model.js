@@ -36,7 +36,7 @@ const cartSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true, // one cart per user
+      // unique: true, // one cart per user
     },
     items: [cartItemSchema],
     updatedAt: { type: Date, default: Date.now },
