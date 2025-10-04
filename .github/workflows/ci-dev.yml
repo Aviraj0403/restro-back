@@ -1,4 +1,4 @@
-name: CI Pipeline for Dev Branch
+name: CI/CD Pipeline for restr0-backend
 
 on:
   push:
@@ -22,11 +22,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Use the correct version of Node.js you are using
+          node-version: '16'  # Use the correct version of Node.js
 
       # Step 3: Cache Node.js dependencies to speed up subsequent builds
       - name: Cache node_modules
-        uses: actions/cache@v3  # Updated to v3
+        uses: actions/cache@v3
         with:
           path: |
             ~/.npm
@@ -39,14 +39,48 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Step 5: Run tests
+      # Step 5: Run tests (Optional, if you have a test suite)
       # - name: Run tests
-      #   run: npm test  # Runs your test suite
+      #   run: npm test  # Ensure you have a proper test suite
 
-      # Step 6: Lint the code
+      # # Step 6: Lint the code (Optional)
       # - name: Lint the code
-        # run: npm run lint  # Optional: Only if you have a linting script
+      #   run: npm run lint  # Ensure you have a linting script
 
-      # Step 7: Build the project (Optional)
-      - name: Build project
-        run: npm run build  # Optional: Run this if you have a build step like TypeScript
+      # Step 7: Build the project (Optional, if needed)
+      - name: Build project (if required)
+        run: npm run build  # Uncomment this if you need a build step
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code from GitHub repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up SSH with private key
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH private key from GitHub Secrets
+
+      # Step 3: Deploy to VPS (restr0-backend)
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no root@168.231.122.13 "
+            # Pull the latest changes
+            cd /var/www/Restro/restro-backend && 
+            git pull origin main && 
+            
+            # Install dependencies
+            npm install && 
+            
+            # Build the project if needed
+            npm run build && 
+
+            # Restart the application using PM2 (Zero-downtime)
+            pm2 reload restro-backend --watch --name restro-backend || pm2 restart restro-backend"
+
+  
