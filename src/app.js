@@ -71,7 +71,7 @@ app.use('/v1/api', mapRoutes)
 
 // Health check
 app.get('/', (req, res) => {
-  res.send('Hello Avi Raj! Production is running smoothly!');
+  res.send('Hello Avi Raj! Production is running smoothly on Ci-Cd !');
 });
 
 // Error handler
