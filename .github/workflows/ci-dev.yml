@@ -58,7 +58,7 @@ jobs:
     steps:
       # Step 1: Checkout code from GitHub repository
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3  # Update to use v3
 
       # Step 2: Set up SSH with private key
       - name: Set up SSH
@@ -70,17 +70,22 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no root@168.231.122.13 "
-            # Pull the latest changes
+            # Navigate to the project directory
             cd /var/www/Restro/restro-backend && 
+
+            # Pull the latest changes from GitHub
             git pull origin main && 
-            
-            # Install dependencies
+
+            # Install dependencies (if new dependencies are added)
             npm install && 
-            
-            # Build the project if needed
+
+            # Build the project (if necessary)
             npm run build && 
 
-            # Restart the application using PM2 (Zero-downtime)
-            pm2 reload restro-backend --watch --name restro-backend || pm2 restart restro-backend"
-
-  
+            # Check if the app is running, reload it if possible; otherwise, restart
+            pm2 show restro-backend > /dev/null 2>&1 && \
+            pm2 reload restro-backend --watch --name restro-backend || \
+            pm2 restart restro-backend && \
+            
+            # Save the PM2 process list for persistence
+            pm2 save"
